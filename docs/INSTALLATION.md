@@ -4,7 +4,7 @@ Return to the [README](../README.md).
 
 ## Install
 
-**Prerequisites:** bash 4+, git, Node.js 18+. npm is only required for the optional MCP server below.
+**Prerequisites:** bash 4+, git, Node.js 18+, Python 3.8+. npm is only required for the optional MCP server below. On Windows, `install.ps1` installs Python and jq, and prints the `winget` command for Git for Windows (which provides bash) and Node.js if they are missing.
 
 > **macOS note:** macOS ships bash 3.2 (frozen at GPLv2 since 2007). Install modern bash first: `brew install bash`. The installer will detect the old version and tell you exactly how to fix it.
 
@@ -13,6 +13,7 @@ Return to the [README](../README.md).
 - **Most users:** core install below (`git clone` + `bash install.sh`)
 - **Augment Agent only:** one-liner bootstrap for Ubuntu / Debian / WSL
 - **Claude Code:** use `install.sh` for complete setup, or `/plugin install` for plugin-only mode
+- **Windows without WSL:** `install.ps1` (full install under Git Bash; see [Windows (native)](#windows-native))
 - **Codex / OpenCode:** use the platform-specific instructions below
 - **Claude Desktop:** the core install covers the Code tab and builds ZIPs to upload for the Chat and Cowork tabs; see [Claude Desktop](../README.md#claude-desktop)
 - **Another MCP client:** do the core install first, then add the optional MCP server
@@ -29,11 +30,36 @@ The installer:
 
 - Detects wrong shell (sh, zsh, dash) and tells you to use bash
 - Detects old bash (3.2) with platform-specific install instructions
-- Checks for missing commands (git, node) with remediation steps
+- Checks for missing commands (git, node, python3) with remediation steps
 - Auto-detects your platform and offers to install missing dependencies
 - Auto-fixes Windows CRLF line endings if detected
 
-**Windows/WSL:** Run `wsl --install -d Ubuntu` first, then use the commands above from within WSL. If you cloned superpowers-plus on Windows *before* running the installer, repair line endings with: `bash tools/harsh-review.sh --fix`
+**WSL:** Run the commands above from within WSL. If you cloned superpowers-plus on Windows *before* running the installer, repair line endings with: `bash tools/harsh-review.sh --fix`
+
+### Windows (native)
+
+On Windows, superpowers runs its bash hooks and scripts with Git Bash, the shell Claude Code also uses on Windows. No WSL is needed. Requires Windows PowerShell 5.1 or PowerShell 7. winget is used only when a prerequisite is missing; without winget, install Git for Windows, Node.js 18+, Python 3.8+, and jq (`jq.exe` on `PATH`) yourself, then run the script.
+
+No Git yet? From an elevated PowerShell run `winget install --id Git.Git -e` and `winget install --id OpenJS.NodeJS.LTS -e`, then open a new normal PowerShell. To skip `git clone`, download the repo ZIP from GitHub, extract it, and run `install.ps1` from the extracted `superpowers-plus-main` folder; Git for Windows is still required for Git Bash.
+
+```powershell
+git clone https://github.com/bordenet/superpowers-plus.git $HOME\superpowers-plus
+cd $HOME\superpowers-plus
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+`install.ps1` does four things:
+
+1. Installs missing `Python.Python.3.12` and `jqlang.jq` with winget. If `Git.Git` (Git Bash) or `OpenJS.NodeJS.LTS` is missing, it stops and prints the `winget install` command to run elevated (see below). With `-NoPrereqInstall` it stops for any missing prerequisite.
+2. Writes `python3` (for Git Bash) and `python3.cmd` (for PowerShell and CMD) shims to `~\.local\bin` and puts that folder first on the user `PATH`. Python on Windows ships only `python.exe`, and the `python3` in `WindowsApps` opens the Microsoft Store.
+3. Sets user environment variables `CLAUDE_CODE_GIT_BASH_PATH` (Git Bash path, read by Claude Code) and `PYTHONUTF8=1` (Windows Python otherwise reads files in the ANSI code page).
+4. Runs `install.sh --yes` under Git Bash, which does the full install. `sp-*` commands are written as small wrapper scripts (usually to `~\.local\bin`), because Git Bash's `ln -s` makes copies.
+
+Afterwards, open a new terminal and restart Claude Code or your AI tool so the changes take effect. If WSL is also installed, `bash` typed in PowerShell starts WSL, because `C:\Windows\System32\bash.exe` comes first on the system `PATH`. To open Git Bash, use Git Bash from the Start menu or run `& $env:CLAUDE_CODE_GIT_BASH_PATH`. Claude Code is not affected.
+
+Options: `-Categories <a,b>`, `-SkipAugment`, `-Force`, `-NoPrereqInstall`, and `-Uninstall`. `-Categories` and `-SkipAugment` are passed to `install.sh`. `-Force` only bypasses the ecosystem lock in `~\.codex\.superpowers-ecosystem` (it sets `SUPERPOWERS_ALLOW_FOREIGN_ECOSYSTEM=1`); it does not pass `install.sh --force`, which can run `git reset --hard origin/main` and `git clean -fd` in `~\.codex\superpowers-plus`, discarding local commits and untracked files. `-Uninstall` runs `uninstall.sh` under Git Bash (so Git Bash must still be installed) and, if that succeeds, removes the `python3` shims and `sp-*` wrappers; it installs nothing, and leaves the `~\.local\bin` PATH entry, `CLAUDE_CODE_GIT_BASH_PATH`, `PYTHONUTF8`, and winget packages in place.
+
+Run `install.ps1` from a normal PowerShell; it refuses to run elevated, because it executes scripts from a checkout a non-admin can modify (`SUPERPOWERS_ALLOW_ELEVATED=1` lifts this for disposable single-user machines such as CI runners). Git for Windows and Node.js install machine-wide, so if either is missing the script stops and prints the `winget install` command to run from an elevated PowerShell first. If `CLAUDE_CODE_GIT_BASH_PATH` or `PYTHONUTF8` is already set to a different value, it is kept with a warning; `CLAUDE_CODE_GIT_BASH_PATH` is replaced if it points at a path that no longer exists. Python must be 3.8+ and Node.js 18+. Earlier versions of `install.ps1` were a WSL wrapper; it now installs natively into your Windows profile. On macOS and Linux, `install.ps1` runs `bash install.sh` (or `uninstall.sh` with `-Uninstall`).
 
 **Linux containers (Docker/CI):** Works as root without sudo. The installer detects the environment automatically.
 

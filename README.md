@@ -31,7 +31,40 @@ Then tell your assistant what you're doing:
 | "Check for security issues" | `repo-security-scan` covers secrets, dependencies, risky patterns, and config |
 | "I'm about to commit" | `unified-commit-gate` runs lint/build/test, style, review, language, and IP audit |
 
-Full install options (Claude Code plugin, Codex, OpenCode, MCP server, Windows/WSL) are in [docs/INSTALLATION.md](docs/INSTALLATION.md).
+Full install options (Claude Code plugin, Codex, OpenCode, MCP server, Windows, WSL) are in [docs/INSTALLATION.md](docs/INSTALLATION.md).
+
+### Windows (native, no WSL)
+
+Superpowers runs its hooks and helper scripts with bash. On Windows that bash is Git Bash (part of Git for Windows), the same shell Claude Code uses on Windows. Requires Windows PowerShell 5.1 or PowerShell 7 and winget. In PowerShell:
+
+```powershell
+git clone https://github.com/bordenet/superpowers-plus.git $HOME\superpowers-plus
+cd $HOME\superpowers-plus
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+`install.ps1`:
+
+1. Installs missing Python 3 (`Python.Python.3.12`) and jq (`jqlang.jq`) with winget. If Git for Windows (`Git.Git`) or Node.js LTS (`OpenJS.NodeJS.LTS`) is missing, it stops and prints the `winget install` command to run from an elevated PowerShell. No git yet? Install it that way, or download the repo ZIP from GitHub, extract it, and run `install.ps1` from the extracted `superpowers-plus-main` folder once Git and Node.js are installed.
+2. Writes `python3` and `python3.cmd` shims to `~\.local\bin` (Python on Windows ships only `python.exe`) and puts `~\.local\bin` first on your user `PATH`.
+3. Sets the user environment variables `CLAUDE_CODE_GIT_BASH_PATH` (where Claude Code finds Git Bash) and `PYTHONUTF8=1`.
+4. Runs `install.sh` under Git Bash. You get the same install as on macOS and Linux: skills, Claude Code hooks, git commit and push gates, tools, rules, and templates.
+
+Open a new terminal afterwards so the `PATH` and environment changes take effect, then restart your AI tool.
+
+| Option | Effect |
+|--------|--------|
+| `-Categories engineering,writing` | Install only those top-level `skills/` folders |
+| `-SkipAugment` | Install to `~\.claude\skills` only. Skips `~\.codex\skills`, `~\.agents\skills` (also read by Codex), the Augment adapter, and Augment rules |
+| `-Force` | Overwrite a different superpowers ecosystem recorded in `~\.codex\.superpowers-ecosystem`. Only bypasses that check; it does not pass `install.sh --force`, so local commits and untracked files in `~\.codex\superpowers-plus` are left alone. To also reset that checkout to `origin/main`, run `install.sh --force` yourself |
+| `-Uninstall` | Run `uninstall.sh` under Git Bash and remove the `python3` shims and `sp-*` wrappers in `~\.local\bin`. Installs nothing. Leaves the `~\.local\bin` PATH entry, `CLAUDE_CODE_GIT_BASH_PATH`, `PYTHONUTF8`, and winget packages in place |
+| `-NoPrereqInstall` | Don't run winget; stop if something is missing |
+
+Run `install.ps1` from a normal PowerShell; it refuses to run elevated, because it executes scripts from a checkout a non-admin can modify. Git for Windows and Node.js install machine-wide, so if either is missing the script stops and prints the `winget install` command to run from an elevated PowerShell first. Existing `CLAUDE_CODE_GIT_BASH_PATH` and `PYTHONUTF8` values are kept (with a warning) unless unset or pointing at a path that no longer exists. Python must be 3.8+ and Node.js 18+.
+
+Earlier versions of `install.ps1` were a WSL wrapper. It now installs natively into your Windows profile.
+
+If WSL is also installed, `bash` typed in PowerShell or CMD starts WSL, not Git Bash, because `C:\Windows\System32\bash.exe` comes first on the system `PATH`. To open Git Bash, use Git Bash from the Start menu or run `& $env:CLAUDE_CODE_GIT_BASH_PATH`. Claude Code is not affected because it uses `CLAUDE_CODE_GIT_BASH_PATH`. On macOS and Linux, `install.ps1` runs `bash install.sh` with the same options.
 
 ## Claude Desktop
 
@@ -117,6 +150,7 @@ All 125 skills: [docs/SKILLS.md](docs/SKILLS.md). How they connect: [docs/SKILL_
 | **Claude Code** | Full: skills, lifecycle hooks, commit and push gates, approval guardrails |
 | **Augment Code** | Full: skills, routing, commit and push gates, MCP integrations |
 | **Codex, OpenCode** | Skills, via the [platform install guides](docs/INSTALLATION.md). Git gates work with any assistant because git runs them; Claude Code lifecycle hooks do not apply |
+| **Windows** | Full install through [`install.ps1`](#windows-native-no-wsl), which runs `install.sh` under Git Bash. WSL also works |
 | **Gemini CLI** | No installer. `GEMINI.md` points Gemini at the repo's agent guidance |
 | **Claude Desktop** | Code tab: same as Claude Code. Chat and Cowork: eleven uploadable skills. Chat can also reach all skills through the MCP server. See [Claude Desktop](#claude-desktop) |
 | **Other MCP clients** | Skills exposed as `find_skills`, `use_skill`, and `match_skills` tools |

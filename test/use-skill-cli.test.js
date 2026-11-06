@@ -15,6 +15,8 @@
 'use strict';
 
 const { spawnSync } = require('child_process');
+const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const CLI = path.resolve(__dirname, '..', 'superpowers-augment.js');
@@ -113,11 +115,16 @@ console.log('\n--- use-skill: spo: without SP_OVERLAY_SOURCE_DIR (early-error re
   // undefined instead of documented booleans. The CLI surfaces the early-error
   // message verbatim, so "SP_OVERLAY_SOURCE_DIR not set" appearing without any
   // ReferenceError is proof the early return is now structurally complete.
-  const env = Object.assign({}, process.env);
+  // SPC_SOURCE_DIR is the legacy overlay fallback, and ~/.codex/.env can set
+  // either variable, so both are cleared and HOME points at an empty dir.
+  const isolatedHome = fs.mkdtempSync(path.join(os.tmpdir(), 'use-skill-cli-'));
+  const env = Object.assign({}, process.env, { HOME: isolatedHome, USERPROFILE: isolatedHome });
   delete env.SP_OVERLAY_SOURCE_DIR;
+  delete env.SPC_SOURCE_DIR;
   const result = spawnSync('node', [CLI, 'use-skill', 'spo:any-name'], {
     env, encoding: 'utf8', timeout: 20000,
   });
+  fs.rmSync(isolatedHome, { recursive: true, force: true });
   const combined = (result.stdout || '') + (result.stderr || '');
   assertNotContains(combined, 'forceSpp is not defined',
     'overlay early-error path does not crash with forceSpp ReferenceError');
