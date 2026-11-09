@@ -1,12 +1,14 @@
-# Lite state and next steps
+# Lite state and decision
 
-Verified 2026-11-01. This is a planning status and source-only baseline, not a
-Light release, native benchmark or execution-contract amendment.
+The November 1, 2026 description-compression evaluation is `CLOSED_NO_GO`.
+Full remains the supported installation. The existing efficiency release and
+the source-only baseline below are retained.
 
 ## Released and locally available
 
-Main is `c531624f94678b856d2803b658941cb992d4e8a2`; dev is
-`18181149e549e14a7165af8342533c08430ab9f5`. Both have tree
+At the efficiency release checkpoint, main was
+`c531624f94678b856d2803b658941cb992d4e8a2` and dev was
+`18181149e549e14a7165af8342533c08430ab9f5`. Both had tree
 `c891a5b9e4c96fd7d908286b0fede3459152d173`.
 The [efficiency feature](https://github.com/bordenet/superpowers-plus/pull/1411),
 [main promotion](https://github.com/bordenet/superpowers-plus/pull/1412) and
@@ -19,7 +21,8 @@ against released source; no duplicate install was performed during reconciliatio
 These improvements reuse validation/review evidence and reduce repeated work.
 They do not implement Light or prove smaller native startup listings. The old
 staged strategy draft has a hardened released successor; it is preserved as WIP.
-Codex and Claude are the required hosts for the next plan; Augment is optional.
+If Light evaluation reopens, Codex and Claude remain required and Augment
+remains optional. The existing acceptance criteria still apply.
 
 ## Progress
 
@@ -34,10 +37,9 @@ Codex and Claude are the required hosts for the next plan; Augment is optional.
 | On-demand catalog/load helpers | Absent |
 | Complete native Light evaluation and dogfood | Outstanding |
 
-The protected P2b worktree has two staged additions and seven unstaged modifications;
-its head is `c9e7cf1079b4d20feb2d43ae58036ddbd8088472`, 27 commits behind the pinned
-dev. Its prior background-sync attribution was acknowledged by the owner; that is
-not an unanswered question. Preserve its bytes and staging while planning reuse.
+The unfinished P2b worktree contains local changes. Preserve its checkout and
+index as recovery material. Its state must be reconciled independently if a
+future request reopens implementation.
 
 ## Fresh source-only baseline
 
@@ -66,40 +68,25 @@ propose an execution-contract amendment rather than silently repinning old evide
 The broad source freeze still covers skills, rules, lib, tools and installer/runtime
 inputs. The historical B0 narrowing has not already happened.
 
-Only three P2b paths changed upstream since its current head: the Full source test,
-the Full install helper and the Augment baseline fixture. Review those overlaps
-before reusing old exemptions or hashes. Old focused passes do not seal a current
-standalone slice. No source freeze, oracle, interface or default changed here.
+If implementation reopens, compare the protected P2b checkout against the
+then-current target before reusing any test evidence or exemptions.
 
-## First diagnostic prepared; approval pending
+## R2b outcome
 
-R2b preparation now has same-revision F/A/C source payloads, the released alias
-mapping, frozen content fixtures and an executable native observation method.
-The next proposed run is deliberately small: four Claude Code F/C skill-layer
-sessions on Haiku 5.5, one push-authorization case and one arithmetic negative in
-each arm, with separately observed startup. It schedules eight user turns and
-at most sixteen provider inference requests, with a USD 2 pre-tax API inference
-ceiling. No paid run is authorized or has executed.
+The Haiku startup request failed before a scored task ran. The Sonnet/Opus
+attempts also ended before scored inference, with the last attempt rejected
+for insufficient API credits. These attempts produced no model comparison.
+The local fake-provider checks remain evidence for the runner and observation
+method.
 
-Haiku 5.5 supersedes the older 4.5 proposal at the owner's direction. Its current
-model limits/pricing were verified. Native CLI checks against a local fake provider
-proved tool-event capture and real startup/task continuation; synthetic responses
-are not evidence of model behavior, provider availability, billing or quality.
+Three read-only native Codex runs used existing ChatGPT authentication. The
+first compressed candidate skipped required verification guidance. After that
+description was restored, the unchanged Full and adjusted candidate both read
+the guidance. They used 74,030 and 73,727 input tokens respectively in one
+short task, a difference of 303 tokens (0.41%). Tool grouping, cached input and
+outputs varied. This screen cannot support a causal savings estimate, a
+long-session forecast or a cash ROI claim.
 
-The guard reserves worst-case spend before forwarding and settles only complete
-provider usage. Errors keep their reservation and stop. Paid and mock runs use
-separate fresh roots; stale or symlink runtime trees refuse before mutation.
-Denied, failed, truncated or unobservable task windows are INVALID, even if the
-final answer succeeds. A separate native denial check proved this path.
-
-This is a controlled source skill-layer diagnostic with read-only tools and a
-fixture hook. It excludes live suite hooks, wrappers, synced skills and connectors
-from both arms. It does not establish shipped-Full behavior, native Light cost,
-complete acceptance or host support. A remains source/inventory-only; helper cost
-is still unknown. Unknown live wrapper ownership is preserved without cleanup.
-
-The full register retains 26 required skills, 78 positive cases, 10 negatives and
-two repeats, with Codex and Claude required. Those requirements are not waived by
-this pilot. The old 704-session draft is not launch authority. After the pilot,
-present all observations before seeking a separate expanded budget or any product,
-contract, oracle or default change.
+The owner accepted closure on this evidence. The prepared description patch
+remains unapplied. A new evaluation requires a recurring problem observed in
+real work, a concrete expected benefit and a separately approved scope.
