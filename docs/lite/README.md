@@ -1,45 +1,28 @@
 # Lite planning: start here
 
-Updated 2026-11-01. Reconciliation and source-only baseline are complete.
-Native measurement and implementation remain separately gated.
-
-Read [current state and next steps](current-state.md) first. It records the pinned
-standalone Full release, completed efficiency deployment, source-only measurements,
-remaining compatibility decisions and the next bounded preparation task.
+The November 1, 2026 description-compression evaluation is `CLOSED_NO_GO`.
+Read the [current state and decision](current-state.md) for the native Codex
+result, its limits, and the earlier Full release and source-only measurements.
 
 ## What is ready
 
 The standalone/upstream-parity work, Codex discovery/hook repairs and validation
-reuse/strategy improvements are released. Main and dev have identical file trees.
-The normal installer completed from released main; recorded deployed runtime, hook
-and skill files were freshly checked against that source. No repeat installation,
-release or full test run is needed to begin planning.
+reuse and strategy improvements are released. The recorded main and dev release
+checkpoints had identical file trees. The normal installer completed from that
+main revision, and the installed runtime, hooks and skills were checked against
+that source.
 
 A selection manifest and Full compatibility checks are shipped. Complete Light
 installation, catalog/load helpers, lifecycle transitions and native acceptance
 are unfinished. Source projections do not establish native host cost or support.
 
-## Before further execution
+## If a concrete need reopens evaluation
 
-1. Preserve historical evidence, dirty implementation worktrees and their index.
-   Reconcile unfinished P2b explicitly; do not automatically resume, rebase or discard it.
-2. Preserve the historical oracle and interface. Current repository compatibility
-   tests use a later pinned source; propose a scoped execution-contract amendment
-   identifying intentional changes before any new compatibility claim.
-3. Prepare a bounded host-specific comparison of the same standalone Full revision,
-   a core-only discovery projection, and a description-only candidate. Keep source
-   bytes, actual host listings, whole-request tokens and duplicate cleanup separate.
-4. Present the frozen cases, effective configuration roots, observation method,
-   permitted outputs, model/host versions and exact calls/spend for approval.
-   No paid startup/smoke probe or retry is free or implicitly approved.
-5. Present valid results before requesting implementation approval. Codex and Claude
-   are the required hosts after the approved efficiency release; Augment is optional.
-   Optional/unverified hosts do not become supported through another host's results.
-
-The owner's proceed instruction covers reconciliation and planning maintenance.
-A favorable projection, completed deployment or published plan does not authorize
-contract/oracle changes, a default flip or the next product implementation.
-Full remains the shipped installation; do not publish complete Light savings.
+Preserve the historical evidence, compatibility oracles and unfinished P2b
+worktree. Use a bounded comparison on the host relevant to the problem.
+Freeze the cases and observation method, and obtain approval for the exact
+calls and spend before running paid requests. Broader Light acceptance would
+still require separate evidence on Codex and Claude. Augment remains optional.
 
 ## Historical material and tracking
 
@@ -55,7 +38,7 @@ reduce repeated context loading; no parallel tracker was created for this task.
 
 ## Measurement proposals
 
-These remain subject to the execution approvals above:
+These proposals remain available as reference if evaluation reopens:
 
 - [Isolate each host before measurement](measurement-isolation.md)
 - [Require component evidence for duplicate recommendations](duplicate-evidence.md)

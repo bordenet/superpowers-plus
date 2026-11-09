@@ -250,7 +250,11 @@ jobs:
       - name: Install shellcheck
         if: steps.reuse.outputs.skip != 'true'
         run: |
-          python3 tools/validation-toolchain.py --provision-shellcheck "$RUNNER_TEMP/spp-shellcheck"
+          if ! provision="$(python3 tools/validation-toolchain.py --provision-shellcheck "$RUNNER_TEMP/spp-shellcheck" 2>&1)"; then
+            printf '%s\n' "$provision" >&2
+            [[ "$provision" == *"HTTP Error 50"[234]* ]]
+            bash .github/scripts/provision-shellcheck-fallback.sh "$RUNNER_TEMP/spp-shellcheck"
+          fi
           echo "$RUNNER_TEMP/spp-shellcheck" >> "$GITHUB_PATH"
 
       - name: Bats policy lint (no stale opt-outs)
