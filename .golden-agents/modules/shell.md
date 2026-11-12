@@ -133,3 +133,4 @@ Before committing shell scripts:
 4. [ ] Test with paths containing spaces
 5. [ ] Test sourcing AND direct execution
 6. [ ] Verify on both macOS and Linux if cross-platform
+
