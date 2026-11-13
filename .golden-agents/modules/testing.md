@@ -111,4 +111,3 @@ Before modifying shared code:
 2. **Identify downstream effects**: What breaks if this changes?
 3. **Plan migration**: If signature changes, update all call sites
 4. **Test affected code**: Run tests for all affected components
-

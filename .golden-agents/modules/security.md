@@ -53,4 +53,3 @@ git commit  # Let hooks run
 
 For comprehensive security workflows:
 - `superpowers-plus/skills/security-upgrade/`
-

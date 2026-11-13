@@ -52,4 +52,3 @@ When uncertain, check these canonical implementations:
 ./scripts/setup.sh          # Full setup
 ./scripts/setup-web.sh      # Web-specific setup
 ```
-

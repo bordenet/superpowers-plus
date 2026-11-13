@@ -116,4 +116,3 @@ Always commit lock files for reproducible builds:
 | Cargo | `Cargo.lock` |
 | pip | `requirements.txt` (pinned) |
 | Flutter | `pubspec.lock` |
-

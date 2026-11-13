@@ -147,4 +147,3 @@ async function copyToClipboard(text) {
   }
 }
 ```
-
