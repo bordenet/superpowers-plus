@@ -7,21 +7,43 @@
 REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
 INSTALLER="$REPO_ROOT/install.sh"
 
-setup() {
-    TEST_HOME="$(mktemp -d)"
-    export HOME="$TEST_HOME"
-    FAKE_BIN="$(mktemp -d)"
-    export PATH="$FAKE_BIN:$PATH"
-    # A developer's real shell profile may export TODO_FILE_PATH pointing at
-    # a real file outside $TEST_HOME (e.g. a personal task-tracking doc).
-    # If inherited, the todo-management skill's install step can set macOS's
-    # immutable flag (chflags uchg) on that REAL file rather than anything
-    # under this sandbox, which then makes teardown's `rm -rf "$TEST_HOME"`
-    # fail on an unrelated path outside the sandbox entirely. Unset it so
-    # these tests are isolated regardless of the invoking developer's own
-    # environment.
-    unset TODO_FILE_PATH
+# Default deployment assertions are read-only. Build their real profile once
+# per file; state transitions below retain independent actual installer runs.
+_profile_digest() {
+    python3 - "$1" <<'PYDIGEST'
+import hashlib,os,pathlib,stat,sys
+root=pathlib.Path(sys.argv[1]);h=hashlib.sha256()
+for p in sorted(root.rglob('*')):
+    value=p.lstat();h.update(p.relative_to(root).as_posix().encode()+b'\0'+str(stat.S_IMODE(value.st_mode)).encode())
+    if p.is_symlink():h.update(b'link\0'+os.readlink(p).encode())
+    elif p.is_file():h.update(b'file\0'+hashlib.sha256(p.read_bytes()).digest())
+    else:h.update(b'directory')
+print(h.hexdigest())
+PYDIGEST
+}
 
+_init_profile() {
+    local profile="$1" bin="$2" initial_path="$PATH" entry filtered=""
+    local real_bash real_python
+    real_bash=$(command -v bash)
+    real_python=$(command -v python3)
+    mkdir -p "$profile/.local/bin" "$bin"
+    export HOME="$(cd "$profile" && pwd -P)"
+    export CODEX_HOME="$HOME/.codex" CLAUDE_CONFIG_DIR="$HOME/.claude"
+    unset TODO_FILE_PATH
+    # Prevent the real CLI linker from selecting writable machine-global bin.
+    # Preserve required Homebrew runtimes through private executable links.
+    ln -s "$real_bash" "$bin/bash"
+    ln -s "$real_python" "$bin/python3"
+    local remaining="$initial_path"
+    while [[ -n "$remaining" ]]; do
+        entry="${remaining%%:*}"
+        [[ "$remaining" == *:* ]] && remaining="${remaining#*:}" || remaining=""
+        [[ "${entry%/}" == /usr/local/bin ]] && continue
+        [[ -n "$entry" ]] && filtered+="${filtered:+:}$entry"
+    done
+    export PATH="$bin:$HOME/.local/bin:$filtered"
+    local FAKE_BIN="$bin"
     # Minimal git stub so installer doesn't need a real git
     cat > "$FAKE_BIN/git" << 'STUB'
 #!/usr/bin/env bash
@@ -43,6 +65,49 @@ STUB
     chmod +x "$FAKE_BIN/node"
 }
 
+setup_file() {
+    DEFAULT_INSTALL_HOME="$BATS_FILE_TMPDIR/default-home"
+    DEFAULT_INSTALL_BIN="$BATS_FILE_TMPDIR/default-bin"
+    DEFAULT_INSTALL_LOG="$BATS_FILE_TMPDIR/default-install.log"
+    DEFAULT_INSTALL_STATUS="$BATS_FILE_TMPDIR/default-install.status"
+    DEFAULT_INSTALL_CALLS="$BATS_FILE_TMPDIR/default-install.calls"
+    DEFAULT_INSTALL_DIGEST="$BATS_FILE_TMPDIR/default-install.digest"
+    export DEFAULT_INSTALL_HOME DEFAULT_INSTALL_BIN DEFAULT_INSTALL_LOG
+    export DEFAULT_INSTALL_STATUS DEFAULT_INSTALL_CALLS DEFAULT_INSTALL_DIGEST
+    local rc=0
+    (
+        _init_profile "$DEFAULT_INSTALL_HOME" "$DEFAULT_INSTALL_BIN"
+        printf 'actual installer\n' >> "$DEFAULT_INSTALL_CALLS"
+        bash "$INSTALLER" --yes --skip-augment
+    ) > "$DEFAULT_INSTALL_LOG" 2>&1 || rc=$?
+    printf '%s\n' "$rc" > "$DEFAULT_INSTALL_STATUS"
+    if [[ "$rc" -ne 0 ]]; then cat "$DEFAULT_INSTALL_LOG"; return "$rc"; fi
+    _profile_digest "$DEFAULT_INSTALL_HOME" > "$DEFAULT_INSTALL_DIGEST"
+}
+
+teardown_file() {
+    local current
+    current=$(_profile_digest "$DEFAULT_INSTALL_HOME")
+    [[ "$current" == "$(cat "$DEFAULT_INSTALL_DIGEST")" ]] || {
+        echo 'read-only installer fixture was mutated' >&3; return 1;
+    }
+    [[ "$(wc -l < "$DEFAULT_INSTALL_CALLS" | tr -d ' ')" -eq 1 ]]
+}
+
+setup() {
+    TEST_HOME="$(mktemp -d)"
+    FAKE_BIN="$(mktemp -d)"
+    _init_profile "$TEST_HOME" "$FAKE_BIN"
+}
+
+_use_default_install() {
+    export HOME="$(cd "$DEFAULT_INSTALL_HOME" && pwd -P)"
+    export CODEX_HOME="$HOME/.codex" CLAUDE_CONFIG_DIR="$HOME/.claude"
+    status=$(cat "$DEFAULT_INSTALL_STATUS")
+    output=$(cat "$DEFAULT_INSTALL_LOG")
+    [[ "$status" -eq 0 ]]
+}
+
 teardown() {
     rm -rf "$TEST_HOME" "$FAKE_BIN"
 }
@@ -52,7 +117,7 @@ _run_installer() {
 }
 
 @test "install_skills: skills deployed to CLAUDE_SKILLS_DIR" {
-    _run_installer
+    _use_default_install
     [ "$status" -eq 0 ]
     local skills_dir="$HOME/.claude/skills"
     [ -d "$skills_dir" ]
@@ -63,7 +128,7 @@ _run_installer() {
 }
 
 @test "install_skills: manifest written with at least 10 skill names" {
-    _run_installer
+    _use_default_install
     [ "$status" -eq 0 ]
     local manifest="$HOME/.codex/superpowers-plus/install-state/skills.manifest"
     [ -f "$manifest" ]
@@ -73,7 +138,7 @@ _run_installer() {
 }
 
 @test "install_skills: each manifest entry has a corresponding skill dir" {
-    _run_installer
+    _use_default_install
     [ "$status" -eq 0 ]
     local manifest="$HOME/.codex/superpowers-plus/install-state/skills.manifest"
     local skills_dir="$HOME/.claude/skills"
@@ -85,7 +150,7 @@ _run_installer() {
 }
 
 @test "install_libs: runtime libs deployed and lib/install/ excluded" {
-    _run_installer
+    _use_default_install
     [ "$status" -eq 0 ]
     local libs_dir="$HOME/.codex/superpowers-plus/lib"
     [ -d "$libs_dir" ]
@@ -99,19 +164,19 @@ _run_installer() {
 }
 
 @test "install_skills: _shared/ deployed alongside skills" {
-    _run_installer
+    _use_default_install
     [ "$status" -eq 0 ]
     [ -d "$HOME/.claude/skills/_shared" ]
 }
 
 @test "install_skills: obra path (~/.codex/superpowers) NOT created" {
-    _run_installer
+    _use_default_install
     [ "$status" -eq 0 ]
     [ ! -d "$HOME/.codex/superpowers" ]
 }
 
 @test "install_skills: skills source from skills/ tree, not obra path" {
-    _run_installer
+    _use_default_install
     [ "$status" -eq 0 ]
     local manifest="$HOME/.codex/superpowers-plus/install-state/skills.manifest"
     # A bundled obra skill (now in our skills/ tree) should appear in the manifest
@@ -229,4 +294,10 @@ _run_installer() {
     run bash "$INSTALLER" --uninstall --dry-run --yes
     [ "$status" -eq 0 ]
     [[ "$output" == *"[DRY-RUN] Would remove:"* ]]
+}
+
+@test "read-only default assertions share one immutable real installation" {
+    [ "$(cat "$DEFAULT_INSTALL_STATUS")" -eq 0 ]
+    [ "$(wc -l < "$DEFAULT_INSTALL_CALLS" | tr -d ' ')" -eq 1 ]
+    [ "$(_profile_digest "$DEFAULT_INSTALL_HOME")" = "$(cat "$DEFAULT_INSTALL_DIGEST")" ]
 }

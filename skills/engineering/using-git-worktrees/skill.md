@@ -134,18 +134,23 @@ project=$(basename "$(git rev-parse --show-toplevel)")
 
 ```bash
 # Determine full path
-case $LOCATION in
+global_root="$HOME/.config/superpowers/worktrees"
+case "$LOCATION" in
   .worktrees|worktrees)
-    path="$LOCATION/$BRANCH_NAME"
+    path="$PWD/$LOCATION/$BRANCH_NAME"
     ;;
-  ~/.config/superpowers/worktrees/*)
-    path="~/.config/superpowers/worktrees/$project/$BRANCH_NAME"
+  "$global_root"|"$global_root"/*|"~/.config/superpowers/worktrees"|"~/.config/superpowers/worktrees/"*)
+    path="$global_root/$project/$BRANCH_NAME"
+    ;;
+  *)
+    printf 'Unsupported worktree location: %s\n' "$LOCATION" >&2
+    exit 1
     ;;
 esac
 
-# Create worktree with new branch
-git worktree add "$path" -b "$BRANCH_NAME"
-cd "$path"
+# Stop before setup if creation or directory entry fails.
+git worktree add "$path" -b "$BRANCH_NAME" || exit
+cd "$path" || exit
 ```
 
 ### 3. Run Project Setup

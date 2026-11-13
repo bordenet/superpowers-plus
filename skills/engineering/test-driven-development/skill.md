@@ -25,6 +25,15 @@ composition:
 
 # Test-Driven Development (TDD)
 
+## Strategy before execution
+
+Before every automated review or test/check pass, resolve a snapshot-bound
+REUSE, WAIT, RUN_MINIMAL, REVIEW_REQUIRED or STOP decision at its supported
+execution/dispatch boundary. Reuse valid coverage or join its active producer.
+Missing/stale decisions refuse; unknown coverage stays conservative. No model
+calls or recursive checks inside strategy. Status/HEAD changes, clean reviews
+and score targets alone never justify another expensive pass.
+
 ## When to Use
 
 - Implementing any feature or bugfix — before writing implementation code
@@ -93,11 +102,11 @@ Write simplest code to pass. Don't add features, refactor, or "improve" beyond t
 
 ### Verify GREEN (MANDATORY)
 
-Run the focused test, then the project's documented test command. GREEN means
-the project suite passes, not only the task's named file. Report every failing
-test by name, including pre-existing failures; distinguish them from regressions.
-Resolve failures or record a scoped exception authorized by the user. Output must
-be understood before declaring success.
+Use strategy to select affected RED/GREEN coverage and genuinely missing
+project checks. Reuse unchanged passing evidence. Report every observed failure
+by name, distinguish regressions, and stop unchanged failed-input retries.
+GREEN requires the project's applicable coverage to be satisfied by valid
+producer evidence; it does not require another full suite after every edit.
 
 ### REFACTOR — Clean Up
 
