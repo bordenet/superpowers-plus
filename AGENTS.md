@@ -10,21 +10,25 @@ Minimal core with on-demand module loading. Templates at: `$HOME/.golden-agents/
 ## ⚠️ Before ANY Task
 1. Load `.ai-guidance/invariants.md` — contains critical rules
 2. After editing ANY guidance file, check: `wc -l AGENTS.md .ai-guidance/*.md 2>/dev/null`
-   - `AGENTS.md` >150 lines → refactor into `.ai-guidance/`
+   - `AGENTS.md` >250 lines → refactor into `.ai-guidance/`
    - Any `.ai-guidance/*.md` >250 lines → split into sub-directory
+3. Over the limit, draft a diff. Do not apply it. A human merges it.
 <!-- GOLDEN:self-manage:end -->
+<!-- golden-agents:stamp version=1.4.0 updated=2026-11-13 -->
+<!-- golden-agents:modules shell=758c162c97b8790e6d3ed3cd4dc441917c072dc063f5e45d559c77c6be4150bd javascript=819cd988d53fe2b547746e17fbef9f2ae9c629eef94e2e27778de8891e10b5c2 security=1ac770a3537cafe41a39200b507aaa0b4c6a52f2d978d3c9d6be1b44a91687a3 testing=4f99d896d81c026019fbe4e2682baf1ae0bda9cec0ce1c690be6a95d54781509 build-hygiene=17a6efa17673d4e31ff352f4f1a83cb6aab5a9f8804c7e530e1d23677142be86 deployment=738982f51f7ceb856fb3aea9d97236de6725440e04d112cbd1b7ec276c116be8 cli-tools=d999ec7ef38441c0b11517692162d6a94d0434f06e89664aa62feb5f6da63154 -->
 <!-- GOLDEN:framework:start -->
 
 ---
 
-## Quality Gates (MANDATORY)
+## Quality Gates
 
-Before ANY commit:
-1. **Lint**: `shellcheck *.sh`
-2. **Build**: `bash -n *.sh`
-3. **Test**: `bats test/`
+Before a commit, run the gates for each language you changed:
+- **shell**
+  1. **Lint**: `shellcheck *.sh`
+  2. **Build**: `bash -n *.sh`
+  3. **Test**: `bats test/`
 
-**Order matters.** Lint → Build → Test. Never skip steps.
+Lint, then build, then test. Run the same commands in CI or a hook.
 
 ---
 
@@ -44,18 +48,19 @@ Before ANY commit:
 **STOP and load the relevant module BEFORE these actions:**
 
 ### Language Modules (🔴 Required)
-- 🔴 **BEFORE writing ANY `.sh` file or bash code block**: Read `$HOME/.golden-agents/templates/languages/shell.md`
-- 🔴 **BEFORE writing ANY `.js`, `.ts`, `.jsx`, `.tsx` file**: Read `$HOME/.golden-agents/templates/languages/javascript.md`
+- 🔴 **BEFORE writing ANY `.sh` file or bash code block**: Read `.golden-agents/modules/shell.md`
+- 🔴 **BEFORE writing ANY `.js`, `.ts`, `.jsx`, `.tsx` file**: Read `.golden-agents/modules/javascript.md`
 
 ### Workflow Modules (🔴 Required)
-- 🔴 **BEFORE any commit, PR, push, or merge**: Read `$HOME/.golden-agents/templates/workflows/security.md`
-- 🔴 **WHEN tests fail OR after 2+ failed fix attempts**: Read `$HOME/.golden-agents/templates/workflows/testing.md`
-- 🔴 **WHEN build fails OR lint errors appear**: Read `$HOME/.golden-agents/templates/workflows/build-hygiene.md`
-- 🟡 **BEFORE deploying to any environment**: Read `$HOME/.golden-agents/templates/workflows/deployment.md`
-- 🟡 **WHEN conversation exceeds 50 exchanges**: Read `$HOME/.golden-agents/templates/workflows/context-management.md`
+- 🔴 **BEFORE any commit, PR, push, or merge**: Read `.golden-agents/modules/security.md`
+- 🔴 **WHEN tests fail OR after 2+ failed fix attempts**: Read `.golden-agents/modules/testing.md`
+- 🔴 **WHEN build fails OR lint errors appear**: Read `.golden-agents/modules/build-hygiene.md`
+- 🟡 **BEFORE deploying to any environment**: Read `.golden-agents/modules/deployment.md`
 
 ### Project type guidance:
-- Read `$HOME/.golden-agents/templates/project-types/cli-tools.md`
+- Read `.golden-agents/modules/cli-tools.md`
+
+<!-- GOLDEN:framework:end -->
 
 ### Optional: Superpowers integration
 
@@ -70,8 +75,6 @@ This loads available skills into the environment. To load a specific skill manua
 ```bash
 node ~/.codex/superpowers-augment/superpowers-augment.js use-skill SKILL_NAME
 ```
-
-<!-- GOLDEN:framework:end -->
 ---
 
 ## Project-Specific Guidelines
@@ -94,19 +97,12 @@ ALL work MUST happen in this repository (the directory containing this AGENTS.md
 - ❌ NEVER emit "ready to push", "let me commit", "about to merge", "committing", or "pushing to" without first scanning for required-skill triggers
 
 ### TODO Tools
-- `todo-crud.sh` — task CRUD (handles preflight, locking, backup)
-- `todo-preflight.sh --create-if-missing` — init only
-- `todo-maintenance.sh` — housekeeping
 
-Full protocol: `use-skill todo-management`
+Load `.ai-guidance/todo-tools.md` when using TODO tools.
 
 ### Skill File Structure
-```
-skills/{domain}/{skill-name}/
-├── skill.md        # REQUIRED: YAML frontmatter + triggers
-├── examples.md     # OPTIONAL
-└── reference.md    # OPTIONAL
-```
+
+Load `.ai-guidance/skill-file-structure.md` before editing skills.
 
 ### 🔴 Git Workflow — GitHub First, Always
 

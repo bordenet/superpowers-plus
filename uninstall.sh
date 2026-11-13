@@ -125,6 +125,9 @@ shipped_hook_names() {
         # make this function return 1 -- aborting uninstall.sh under `set -e`
         # halfway through (after skills are gone, before hooks are).
         [[ -f "$f" ]] || continue
+        # The paired strategy adapter unregisters by ownership and preserves
+        # customized copies through its own installer below.
+        [[ "${f##*/}" == pre-tool-use-review-strategy.sh ]] && continue
         basename "$f"
     done
     return 0
@@ -460,6 +463,22 @@ main() {
         if [[ ! "$answer" =~ ^[Yy] ]]; then
             log_info "Aborted."
             exit 0
+        fi
+    fi
+
+    # Unregister mandatory adapters before removing any shared runtime.
+    # Failure leaves the rest of the installation intact for repair/retry.
+    local strategy_installer="$SCRIPT_DIR/setup/install-review-strategy-hooks.py"
+    if [[ -f "$strategy_installer" ]]; then
+        if command -v python3 >/dev/null 2>&1; then
+            if [[ "$DRY_RUN" == "true" ]]; then
+                python3 "$strategy_installer" --home "$HOME" --refresh-existing --remove --check
+            else
+                python3 "$strategy_installer" --home "$HOME" --refresh-existing --remove
+            fi
+        elif [[ -f "$HOME/.codex/hooks/pre-tool-use-review-strategy.sh" ||
+                -f "$HOME/.claude/hooks/pre-tool-use-review-strategy.sh" ]]; then
+            error_exit "Python3 is required to unregister native review hooks before uninstall."
         fi
     fi
 

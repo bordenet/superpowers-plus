@@ -41,7 +41,15 @@ test('visual companion preserves literal replacement tokens in supplied HTML', a
   });
   const content = "<section>Literal: $& $$ $' $` $1</section>";
   await fs.writeFile(path.join(dir, 'content/screen.html'), content);
-  const response = await fetch(`http://127.0.0.1:${started.port}/`);
+  const unkeyed = await fetch(`http://127.0.0.1:${started.port}/`);
+  assert.equal(unkeyed.status, 403, 'requests without the session key must be rejected');
+  await unkeyed.body?.cancel();
+  // The keyed URL serves a bootstrap page and sets the session cookie, as a browser sees it.
+  const keyed = await fetch(started.url, { redirect: 'manual' });
+  const cookie = (keyed.headers.get('set-cookie') || '').split(';')[0];
+  await keyed.body?.cancel();
+  assert.ok(cookie, 'keyed URL must set the session cookie');
+  const response = await fetch(`http://127.0.0.1:${started.port}/`, { headers: { cookie } });
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.ok(html.includes(content), 'served fragment must preserve every supplied character');

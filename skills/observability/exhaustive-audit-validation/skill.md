@@ -162,7 +162,7 @@ If gaps remain:
 
 ## Companion: verification-before-completion
 
-This skill extends `superpowers:verification-before-completion`:
+This skill extends `verification-before-completion`:
 
 1. **verification-before-completion** — General "did I do everything?"
 2. **exhaustive-audit-validation** — Specific audit/bulk-edit checklist
