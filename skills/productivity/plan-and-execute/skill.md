@@ -172,7 +172,7 @@ Review EVERY remaining TODO in the `#plan-<project>` list:
 
 1. Re-read the TODO (it may have been improved by a prior retro)
 2. Execute the work described in the TODO
-3. **Before any `git commit` during this phase:** invoke `superpowers:unified-commit-gate` (all applicable gates). Do not skip because the plan is mid-flight.
+3. **Before any `git commit` during this phase:** invoke `unified-commit-gate` (all applicable gates). Do not skip because the plan is mid-flight.
 4. Harsh-review all deliverables (same red-team questions as Phase C, applied to outputs not plans)
 5. Verify success criteria are met
 6. Mark TODO complete via `todo-crud.sh` with completion notes
@@ -183,7 +183,7 @@ Review EVERY remaining TODO in the `#plan-<project>` list:
 
 1. Confirm deliverables exist and meet success criteria
 2. Confirm handoff state is documented for the next phase
-3. **Before pushing the branch** (once per push, not per phase): invoke `superpowers:unified-commit-gate` via `/sp-push`. A valid `.code-review-cleared` sentinel must exist for HEAD; if missing, run `code-review-battery` first.
+3. **Before pushing the branch** (once per push, not per phase): invoke `unified-commit-gate` via `/sp-push`. A valid `.code-review-cleared` sentinel must exist for HEAD; if missing, run `code-review-battery` first.
 4. **Exit gate:** TODO marked complete, deliverables verified, handoff state captured
 
 ---

@@ -7,6 +7,13 @@
 set -euo pipefail
 if [[ "${CLAUDE_HOOKS_BYPASS:-0}" == "1" ]]; then exit 0; fi
 
+# Registered Codex copies need structured lifecycle output in codex-cli 0.164.
+# Use deployment location, not ambient Codex variables, to preserve Claude output.
+HOOK_IS_CODEX=0
+case "$0" in
+  "$HOME/.codex/hooks/"*|"${CODEX_HOME:-$HOME/.codex}/hooks/"*) HOOK_IS_CODEX=1 ;;
+esac
+
 rotate_file() {
   local file="$1" max_bytes="$2" generations="$3" size
 
@@ -358,6 +365,7 @@ if [[ -n "$TOGGLE_SCRIPT" && -x "$TOGGLE_SCRIPT" ]]; then
 fi
 
 if (( ${#PROBLEMS[@]} > 0 )); then
+  if [[ "$HOOK_IS_CODEX" == "1" ]]; then exec 1>&2; fi
   echo "[claude-hooks/SessionStart] integrity FAILURES — halt and alert user:"
   printf '  - %s\n' "${PROBLEMS[@]}"
   echo "  (bypass: set CLAUDE_HOOKS_BYPASS=1 to skip this check if you've confirmed it's safe to proceed)"
@@ -365,11 +373,18 @@ if (( ${#PROBLEMS[@]} > 0 )); then
   exit 2
 fi
 
-if (( ${#ADVISORIES[@]} > 0 )); then
-  echo "[claude-hooks/SessionStart] advisories (non-blocking):"
-  printf '  - %s\n' "${ADVISORIES[@]}"
+CONTEXT="$(
+  if (( ${#ADVISORIES[@]} > 0 )); then
+    echo "[claude-hooks/SessionStart] advisories (non-blocking):"
+    printf '  - %s\n' "${ADVISORIES[@]}"
+  fi
+  echo "[claude-hooks/SessionStart] rules-file integrity OK; invariants at $INV"
+)"
+if [[ "$HOOK_IS_CODEX" == "1" ]]; then
+  jq -cn --arg context "$CONTEXT" \
+    '{hookSpecificOutput:{hookEventName:"SessionStart",additionalContext:$context}}'
+else
+  printf '%s\n' "$CONTEXT"
 fi
-
-echo "[claude-hooks/SessionStart] rules-file integrity OK; invariants at $INV"
 log 0 ok
 exit 0

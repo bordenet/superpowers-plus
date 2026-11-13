@@ -178,3 +178,14 @@ setup() {
     [[ "$output" == *"workspace lock busy"* ]]
     [ -d .superpowers/sdd/.workspace-lock ]
 }
+
+@test "sdd-workspace: outside a git work tree -> exit 2 with a named reason, nothing written" {
+    outside="$(cd "$BATS_TEST_TMPDIR" && pwd -P)/outside"
+    mkdir -p "$outside"
+    printf '# Plan\n' > "$outside/plan.md"
+    cd "$outside"
+    GIT_CEILING_DIRECTORIES="$outside" run bash "$SCRIPT" plan.md
+    [ "$status" -eq 2 ]
+    [[ "$output" == *"not inside a git work tree"* ]]
+    [ ! -e "$outside/.superpowers" ]
+}

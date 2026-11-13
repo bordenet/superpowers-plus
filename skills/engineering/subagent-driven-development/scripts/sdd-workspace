@@ -45,7 +45,10 @@ slug=$(basename "$plan" .md)
 # Physical path, spelled the way pwd -P spells the plan path below: on Git
 # Bash, rev-parse prints C:/Users/... while pwd prints /c/Users/..., and the
 # repo-relative marker check needs both in the same form.
-root=$(CDPATH='' cd -- "$(git rev-parse --show-toplevel)" && pwd -P)
+# An empty toplevel would make `cd ""` a no-op and root the workspace in cwd.
+top=$(git rev-parse --show-toplevel) && [ -n "$top" ] \
+  || { echo "not inside a git work tree: $(pwd)" >&2; exit 2; }
+root=$(CDPATH='' cd -- "$top" && pwd -P)
 base="$root/.superpowers/sdd"
 
 # Normalize the plan path (physical directory, so relative/absolute/../

@@ -81,8 +81,18 @@ done
 
 HOME="${HOME:-/tmp}"
 SKILLS_DIR="${CODEX_SKILLS_DIR:-$HOME/.codex/skills}"
-CACHE_FILE="${CLAUDE_SKILL_ROUTER_CACHE:-$HOME/.claude/hooks/skill-router-cache.json}"
-METRICS_FILE="${CLAUDE_SKILL_ROUTER_METRICS:-$HOME/.claude/hooks/skill-router-metrics.jsonl}"
+# A Codex copy must not consume or rewrite Claude's versioned cache/metrics.
+HOOK_IS_CODEX=0
+case "$0" in
+  "$HOME/.codex/hooks/"*|"${CODEX_HOME:-$HOME/.codex}/hooks/"*) HOOK_IS_CODEX=1 ;;
+esac
+if [[ "$HOOK_IS_CODEX" == "1" ]]; then
+    CACHE_FILE="${CODEX_SKILL_ROUTER_CACHE:-${CODEX_HOME:-$HOME/.codex}/hooks/skill-router-cache.json}"
+    METRICS_FILE="${CODEX_SKILL_ROUTER_METRICS:-${CODEX_HOME:-$HOME/.codex}/hooks/skill-router-metrics.jsonl}"
+else
+    CACHE_FILE="${CLAUDE_SKILL_ROUTER_CACHE:-$HOME/.claude/hooks/skill-router-cache.json}"
+    METRICS_FILE="${CLAUDE_SKILL_ROUTER_METRICS:-$HOME/.claude/hooks/skill-router-metrics.jsonl}"
+fi
 
 # Cache schema/logic version -- bumped whenever the SKIP logic (which
 # skills get cached at all) or the cache's shape changes, independent of
@@ -898,7 +908,14 @@ fi
 HINT_LINES="$(printf '%s\n' "$SCORE_OUTPUT" | grep -v '^##META##' 2>/dev/null || true)"
 
 if [[ -n "$HINT_LINES" ]]; then
-    printf '%s\n' "$HINT_LINES"
+    if [[ "$HOOK_IS_CODEX" == "1" ]]; then
+        printf '%s\n' "$HINT_LINES" | python3 -c '
+import json, sys
+print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit",
+    "additionalContext": sys.stdin.read().rstrip("\n")}}))'
+    else
+        printf '%s\n' "$HINT_LINES"
+    fi
 fi
 
 # Production observability: one JSONL record per invocation, local-only,

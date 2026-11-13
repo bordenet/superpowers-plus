@@ -1,14 +1,10 @@
 ---
 name: feature-development
 source: superpowers-plus
-triggers: ["start feature", "new feature", "feature development workflow",
-           "build a feature", "implement feature", "feature from scratch",
-           "full development workflow", "code change", "make changes",
-           "fix this", "add this", "modify code", "refactor this",
-           "write code", "update the code"]
-anti_triggers: ["fix bug", "debug", "small change", "quick fix", "update docs"]
-description: "DEFAULT WORKFLOW for ANY code change. Orchestrates the full rigorous development lifecycle: brainstorming → think-twice → debate → progressive-harsh-review → plan-and-execute → progressive-harsh-review → commit. This fires AUTOMATICALLY for code changes unless the user explicitly opts out. Sequences existing skills so no phase is skipped."
-summary: "Default for ALL code changes. Opt out only if user says 'skip the full workflow' or 'just do it quickly'. Brainstorm → think-twice → design → review → plan → implement → review → ship."
+triggers: ["feature development workflow", "build a feature", "implement feature", "feature from scratch", "full development workflow"]
+anti_triggers: ["fix bug", "debug", "small change", "quick fix", "update docs", "promotion", "history sync", "status update", "process correction"]
+description: "Orchestrate new feature development. Route bug fixes, bounded process corrections, skill edits, promotions, and status work to their specific workflows instead of imposing the full feature ceremony."
+summary: "Use for new features or an explicitly requested full development workflow. Reuse verified content/context-bound results; no arbitrary duplicate review or test rounds."
 coordination:
   group: engineering
   order: 1
@@ -28,154 +24,64 @@ composition:
 
 # Feature Development
 
-> **Wrong skill?** Bug fix → `systematic-debugging`. Design comparison → `debate`. Pre-commit checks → `pre-commit-gate`. Workflow
->
-> **Purpose:** Orchestrate the full rigorous development lifecycle so no phase is skipped.
-> **Pattern:** This skill SEQUENCES existing skills — it does not replace them.
-> **Scope:** This is the DEFAULT workflow for ANY code change. Opt out ONLY if the user explicitly says to skip it.
+> **Wrong skill?** Bug fix or process defect -> `systematic-debugging` and, for a failed control, `durable-correction`. Skill edits -> `llm-skill-review`. Promotion/history sync -> `branch-flow-gate`. Status -> `session-status`.
 
-**Announce at start:** "I'm using the **feature-development** skill to orchestrate this workflow."
+## Scope
 
-## When to Use
+Use for a new feature or when the user explicitly requests this full workflow.
+Do not apply it merely because a file will change. A bounded repair, skill edit,
+configuration correction, promotion, or status request is not automatically a
+new feature. Its specific workflow still supplies required safety and review.
 
-- Implementing a new feature end-to-end (design → code → test → ship)
-- When the task spans multiple files and requires coordination
-- Multi-step implementation that needs a structured workflow
+## Workflow
 
-## When to Use — DEFAULT for Code Changes
+1. Establish the user's outcome, existing behavior, constraints and acceptance
+   criteria. Read the relevant implementation before asking for missing facts.
+2. Use `brainstorming` for unresolved product/design choices and its Clear path
+   for a fully specified request. Use `debate` only for a material choice between
+   significant approaches. Do not invent options or approval rounds for a settled
+   design. Use `think-twice` when stuck or when a real blind spot needs isolation.
+3. Plan proportionately: a short checklist for a bounded feature; a durable plan
+   for work that actually spans phases. Do not create global TODO work merely to
+   satisfy a second orchestration skill.
+4. Implement with focused regression coverage. Every required test runs through
+   its authoritative runner. Equivalent content/context reuses successful evidence
+   or waits for the active producer; changed inputs invalidate affected coverage.
+5. Use the active repository's review routing (`tools/review.sh` in superpowers-plus)
+   for the final changed paths and the applicable
+   independent review. One clean review is sufficient. Material findings or later
+   relevant changes require delta review; never demand two rounds just to count two.
+6. Complete required lint/build/test, IP, authorization and integration checks.
+   Consume existing valid results; do not restart them for each phase, message,
+   commit, PR or history-only merge. Do not bypass a real missing requirement.
+7. Ship within the user's approved scope. Follow required forge/deployment checks,
+   verify the requested outcome, disclose limitations, then stop. Unrelated health
+   checks are not new acceptance criteria.
 
-- **Any code change** — features, bug fixes, refactors, skill edits, config changes
-- This fires AUTOMATICALLY. You do not need the user to say "use the full workflow."
-- If you are about to write, edit, or generate code, this skill applies.
+## Enforcement and evidence
 
-## Opt-Out Conditions
+Use the active repository's authoritative runner and evidence policy. In
+superpowers-plus, `tools/test-all.sh` and its CI own receipts and single-flight
+execution; do not assume those paths exist in another project. Review
+clearance remains governed by native content-scoped sentinel consumers. Skills
+coordinate these mechanisms; they do not mint PASS, parse imagined formats, or
+launch raw duplicate suites when the authoritative runner reports reuse/wait.
 
-- User explicitly says "skip the workflow", "just do it", "quick fix only"
-- Pure documentation-only changes (no code files touched)
-- Reading/exploring code with no intent to change it
+## Failure cases
 
-## The Workflow
+| Failure | Correct response |
+|---|---|
+| Full feature chain fires for a bounded repair | Use the specific repair/review workflow |
+| Another phase asks for the same test | Reuse or wait on the equivalent producer |
+| Required inputs or execution context changed | Validate the changed inputs once |
+| Clean review followed by an arbitrary second review | Stop; only a material delta justifies re-review |
+| Missing proof or an untrusted producer | Treat as unresolved; never claim PASS |
+| Acceptance met, more unrelated checks appear | Disclose their scope without extending the task |
 
-```bash
-Phase 1: BRAINSTORM → Phase 2: FRESH PERSPECTIVE → Phase 3: DESIGN →
-Phase 4: HARSH REVIEW → Phase 5: PLAN & EXECUTE → Phase 6: HARSH REVIEW →
-Phase 7: SHIP
-```
+## Companion skills
 
-Each phase has an **exit gate** — you cannot proceed until the gate passes.
-
-### Phase 1: Brainstorming
-
-**Invoke:** `brainstorming`
-
-1. Explore the user's intent, requirements, and constraints
-2. Gather codebase context — read existing code, understand patterns
-3. Surface assumptions, edge cases, and scope boundaries
-4. **Exit gate:** Clear understanding of what needs to change and why.
-
-### Phase 2: Fresh Perspective
-
-**Invoke:** `think-twice`
-
-1. Dispatch a sub-agent with zero prior context to review the problem
-2. The sub-agent should identify gaps, blind spots, and alternative framings
-3. Integrate fresh insights back into the plan
-4. **Exit gate:** Fresh perspective reviewed, no unaddressed blind spots.
-
-### Phase 3: Design
-
-**Invoke:** `debate`
-
-1. Generate ≥3 genuinely distinct design options
-2. Build comparison matrix (≤5 criteria)
-3. Evaluate options against requirements from Phase 1
-4. Select winning design with documented rationale
-5. **Exit gate:** Design selected, trade-offs documented, edge cases addressed.
-
-### Phase 4: Harsh Review (Design)
-
-**Invoke:** `progressive-code-review-gate`
-
-1. Red-team the selected design via hostile sub-agent reviewer
-2. Reviewer should find issues the designer is blind to
-3. Fix all BLOCKER and MAJOR findings before proceeding
-4. **Exit gate:** All BLOCKER/MAJOR findings resolved. MINOR findings tracked.
-
-### Phase 5: Plan & Execute
-
-**Invoke:** `plan-and-execute`
-
-1. Break the design into ordered implementation phases with success criteria
-2. **Enroll each phase as a TODO** via `todo-management` / `todo-crud.sh`, then mirror to MCP tasks
-3. Execute each phase, running tests after each
-4. For each phase: implement → test → self-review via `adversarial-search`
-5. Run `output-verification` after generating any artifact
-6. **Exit gate:** All phases complete, all tests pass, no regressions.
-
-### Phase 6: Harsh Review (Implementation)
-
-**Invoke:** `progressive-code-review-gate`
-
-1. Red-team the FULL implementation via hostile sub-agent reviewer
-2. Reviewer reads ALL changed files, runs quality gates, checks for regressions
-3. Fix all BLOCKER and MAJOR findings
-4. Re-review after fixes (minimum 2 review rounds total)
-5. **Exit gate:** Two review rounds passed, all findings resolved.
-
-### Phase 7: Ship
-
-1. Run `output-verification` — read back all generated files
-2. Run `verification-before-completion` — evidence before assertions
-3. Run all validation tools (harsh-review, trigger-validator, tests)
-4. Commit, push, create PR, merge (with user approval at each step)
-5. **Exit gate:** All checks pass, PR merged, synced to all remotes.
-
-## Phase Skip Prevention
-
-**You MUST NOT skip phases.** "I already know the approach" → think-twice catches blind spots. "Only one design option" → debate requires ≥3. "Too small" → the 2026-03-27 incident was "just a small script."
-
-**Opt-out is user-initiated ONLY.** The agent never decides to skip.
-
-## Integration Map
-
-| Phase | Skill Invoked | Purpose |
-|-------|--------------|---------|
-| Brainstorm | `brainstorming` | Explore intent, gather context, surface assumptions |
-| Fresh Perspective | `think-twice` | Sub-agent catches blind spots |
-| Design | `debate` | ≥3 options, comparison, selection |
-| Harsh Review (Design) | `progressive-code-review-gate` | Red-team the design |
-| Plan & Execute | `plan-and-execute` + `adversarial-search` | Structured implementation with self-review |
-| Harsh Review (Impl) | `progressive-code-review-gate` | Red-team the implementation (min 2 rounds) |
-| Ship | `output-verification`, `verification-before-completion` | Inspect output, verify completion, merge |
-
-## Incident History
-
-**2026-03-27:** Agent skipped brainstorming, think-twice, and harsh review. Confabulated summary without reading output. Required 2 hostile review rounds. Every issue would have been caught by the full workflow.
-
-## Example
-
-```bash
-# Pre-flight: verify branch, tests pass, no uncommitted changes
-git status --short && npm test 2>&1 | tail -5
-# Post-implementation: run full test suite + lint
-npm run lint && npm test
-```
-
-## Failure Modes
-
-| Failure | Recovery |
-|---------|----------|
-| Phase skipping (most common) | Every phase has an exit gate. No phase can be skipped without user opt-out. |
-| Rushing through brainstorming in <2 exchanges | Brainstorming should explore ≥3 approaches with real trade-offs |
-| Skipping harsh review after implementation | Phase 6 is mandatory. Fixes from review need their own review. |
-| Not persisting phase state via TODO | Each phase must be enrolled as a TODO before starting |
-
-## Companion Skills
-
-- **brainstorming**: Generating options and alternatives
-- **debate**: Evaluating design alternatives
-- **plan-and-execute**: Structured planning workflow
-- **progressive-code-review-gate**: Code review enforcement
-- **test-driven-development**: TDD workflow
-- **subagent-driven-development**: Multi-agent development
-- **autonomous-chain-controller**: Full workflow orchestration
+- **brainstorming**: resolve real design uncertainty
+- **systematic-debugging**: investigate and repair a defect
+- **durable-correction**: replace a failed control
+- **plan-and-execute**: execute a genuinely phased plan
+- **verification-before-completion**: tie final claims to actual evidence

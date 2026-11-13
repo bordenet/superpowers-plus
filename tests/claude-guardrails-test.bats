@@ -16,7 +16,10 @@ setup_file() {
 
   # Record which Claude Code CLI version this run tested against.
   local claude_ver
-  claude_ver="$(claude --version 2>/dev/null | grep -oE '[0-9]+([.][0-9]+){2}' | head -1 || echo 'absent')"
+  CALLER_HOME="$HOME"
+  export CALLER_HOME
+  mkdir -p "$BATS_FILE_TMPDIR/cli-version-home"
+  claude_ver="$(HOME="$BATS_FILE_TMPDIR/cli-version-home" claude --version 2>/dev/null | grep -oE '[0-9]+([.][0-9]+){2}' | head -1 || echo 'absent')"
   echo "# parity test against claude CLI = $claude_ver" >&3
   echo "$claude_ver" > "${BATS_FILE_TMPDIR}/claude-version.txt"
 
@@ -25,6 +28,25 @@ setup_file() {
     echo "bats-core >= 1.8.0 required (BATS_FILE_TMPDIR missing)" >&2
     return 1
   }
+}
+
+# Every native hook may emit audit/consumption state. Keep that state away
+# from the caller, including when its profile did not exist before this suite.
+setup() {
+  export HOME="$BATS_TEST_TMPDIR/profile"
+  export XDG_CONFIG_HOME="$HOME/.config"
+  unset CODEX_HOME CLAUDE_CONFIG_DIR TODO_FILE_PATH
+  unset CLAUDE_SKILL_ROUTER_METRICS CODEX_SKILL_ROUTER_METRICS
+  mkdir -p "$HOME"
+}
+
+@test "parity fixtures own private profiles for native hook state" {
+  [ "$HOME" != "$CALLER_HOME" ]
+  [[ "$HOME" == "$BATS_TEST_TMPDIR/"* ]]
+  [[ "$XDG_CONFIG_HOME" == "$HOME/"* ]]
+  [ -z "${CODEX_HOME:-}" ]
+  [ -z "${CLAUDE_CONFIG_DIR:-}" ]
+  [ -z "${TODO_FILE_PATH:-}" ]
 }
 
 teardown_file() {
@@ -1733,6 +1755,7 @@ _fixture_transcript_cursor() {
       pre-tool-use-git-identity.sh \
       pre-tool-use-red-autonomy.sh \
       session-start-rules-integrity.sh \
+      session-start-skill-resolution.sh \
       pre-compact-reinject.sh \
       post-tool-use-verify.sh \
       subagent-stop-claims-evidence.sh; do

@@ -2,6 +2,7 @@
 name: writing-plans
 disable-model-invocation: true
 source: superpowers-plus
+augment_menu: true
 triggers: ["/sp-write-plan", "/sp-plan", "write a plan", "create a plan", "plan this out", "implementation plan", "before touching code", "spec is ready"]
 anti_triggers: ["execute the plan", "carry out the plan", "implement the plan", "create a plan and execute", "plan and execute"]
 description: Use when you have a spec or requirements for a multi-step task, before touching code
@@ -28,7 +29,7 @@ Write implementation plans for an engineer who has not seen this codebase or thi
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
-**Context:** If working in an isolated worktree, it should have been created via the `superpowers:using-git-worktrees` skill at execution time.
+**Context:** If working in an isolated worktree, it should have been created via the `using-git-worktrees` skill at execution time.
 
 **Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`
 - (User preferences for plan location override this default)
