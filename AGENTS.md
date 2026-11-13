@@ -14,6 +14,7 @@ Minimal core with on-demand module loading. Templates at: `$HOME/.golden-agents/
    - Any `.ai-guidance/*.md` >250 lines → split into sub-directory
 3. Over the limit, draft a diff. Do not apply it. A human merges it.
 <!-- GOLDEN:self-manage:end -->
+<!-- golden-agents:stamp version=1.4.0 updated=2026-11-13 -->
 <!-- golden-agents:modules shell=758c162c97b8790e6d3ed3cd4dc441917c072dc063f5e45d559c77c6be4150bd javascript=819cd988d53fe2b547746e17fbef9f2ae9c629eef94e2e27778de8891e10b5c2 security=1ac770a3537cafe41a39200b507aaa0b4c6a52f2d978d3c9d6be1b44a91687a3 testing=4f99d896d81c026019fbe4e2682baf1ae0bda9cec0ce1c690be6a95d54781509 build-hygiene=17a6efa17673d4e31ff352f4f1a83cb6aab5a9f8804c7e530e1d23677142be86 deployment=738982f51f7ceb856fb3aea9d97236de6725440e04d112cbd1b7ec276c116be8 cli-tools=d999ec7ef38441c0b11517692162d6a94d0434f06e89664aa62feb5f6da63154 -->
 <!-- GOLDEN:framework:start -->
 
