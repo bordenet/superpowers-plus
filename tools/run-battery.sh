@@ -14,6 +14,10 @@
 # EXIT:    0 = all checks pass, sentinel written
 #          1 = failure, sentinel NOT written
 # -----------------------------------------------------------------------------
+# Only the registered producer executes the native body and seals its result.
+# shellcheck disable=SC2093
+exec python3 "$(dirname "$0")/review-dispatch-guard.py" --native-write code "$0" "$@"
+# REVIEW_NATIVE_BODY
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -312,7 +316,14 @@ fi
 echo ""
 
 echo "─── Step 3/3: skill router unit tests ───"
-if node "$SCRIPT_DIR/../test/skill-router.test.js" 2>&1; then
+if [[ -f "$SCRIPT_DIR/test-all.sh" ]]; then
+    _router_check=(python3 "$SCRIPT_DIR/validation-receipt.py" "$SCRIPT_DIR/test-all.sh" --check router)
+else
+    # Generic overlay deployments may supply only this runner and their own
+    # validation scripts. They do not participate in this repository's ledger.
+    _router_check=(node "$SCRIPT_DIR/../test/skill-router.test.js")
+fi
+if "${_router_check[@]}" 2>&1; then
     echo "✓ skill router tests passed"
 else
     echo "❌ skill router tests FAILED"
@@ -514,6 +525,7 @@ if [[ -n "${PRE_VERIFIER_HASH:-}" ]] && [[ -n "${PRESERVE_FILE:-}" ]]; then
 fi
 
 echo "v1|${SENTINEL_SHA}|${VERDICT}|${TIMESTAMP}|min-score=${MIN_SCORE}" > "$REPO_ROOT/.code-review-cleared"
+
 
 echo "═══════════════════════════════════════════════════════════"
 echo "  ✅ BATTERY PASSED — sentinel written."

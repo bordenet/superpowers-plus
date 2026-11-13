@@ -44,3 +44,11 @@ OP-WAIVER: engineering/debate/skill.md stop_markers -5 — moved to reachable re
 # "## Output path" in reference.md; the path itself remains resident at
 # skill.md's numbered step 5, so the instruction never left the kernel.
 OP-WAIVER: productivity/context-ferry/skill.md code_fences -3 — output-scaffold fences moved to reachable reference.md; path stays resident
+
+# Owner-approved Task S replaces contradictory forced redispatch/HEAD restart
+# procedures with snapshot-bound routing, freshness and unchanged-failure STOP.
+# Quality gates remain in the resident source; these exact structural drops
+# reflect that approved policy replacement, not missing operative safeguards.
+OP-WAIVER: engineering/code-review-battery/skill.md code_fences -1 — replace repeated-review example with one initial review and actionable-delta convergence
+OP-WAIVER: engineering/requesting-code-review/skill.md hard_gate_table -4 — re-encode clearance routing as resident Before presenting bullets with reuse and STOP conditions
+OP-WAIVER: engineering/requesting-code-review/skill.md code_fences -2 — replace stale HEAD-only/manual sentinel snippets with native read-only readiness and writer instructions
