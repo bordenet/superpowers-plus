@@ -333,6 +333,14 @@ if [[ "${REQUIRE_CODE_REVIEW_SENTINEL:-false}" == "true" ]]; then
     fi
 fi
 
+# Checks 1-4 are repeatable staged validation. Native token/IP authorization
+# remains below, outside the reusable producer on every invocation.
+if [[ -f "$REPO_ROOT/tools/validation-receipt.py" && -f "$REPO_ROOT/tools/test-all.sh" ]]; then
+    if ! python3 "$REPO_ROOT/tools/validation-receipt.py" "$REPO_ROOT/tools/test-all.sh" --check native:pre-commit-static; then
+        ERRORS=$((ERRORS + 1))
+    fi
+else
+    echo "strategy: UNENFORCED legacy pre-commit static boundary" >&2
 # -----------------------------------------------------------------------------
 # CHECK 1: File endings (single newline at EOF)
 # -----------------------------------------------------------------------------
@@ -432,6 +440,8 @@ if command -v shellcheck &> /dev/null; then
     done <<< "$STAGED_FILES"
 else
     echo -e "  (shellcheck not installed, skipping)"
+fi
+
 fi
 
 # -----------------------------------------------------------------------------

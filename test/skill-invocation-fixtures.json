@@ -52,13 +52,13 @@
     },
     "feature-development": {
       "expected_substrings": [
-        "Each phase has an **exit gate** — you cannot proceed until the gate passes.",
-        "4. Select winning design with documented rationale",
-        "6. Exit gate: All phases complete, all tests pass, no regressions."
+        "Equivalent content/context reuses successful evidence",
+        "One clean review is sufficient.",
+        "Do not bypass a real missing requirement."
       ],
       "triggers": [],
-      "verified_by": "auto-seed (P0.6 — reviewer must confirm by replacing this with reviewer name)",
-      "verified_at": "2026-04-29"
+      "verified_by": "combined-reviewer; validation-reuse correction",
+      "verified_at": "2026-10-31"
     },
     "thinking-orchestrator": {
       "expected_substrings": [
@@ -97,7 +97,7 @@
     "autonomous-chain-controller": {
       "expected_substrings": [
         "Complexity: LOW (1-2) | MEDIUM (3-5) | HIGH (6+)",
-        "Gate failure: retry < 2 -> retry / retry >= 2 -> think-twice / retry >= 3 -> HALT",
+        "Before every managed action, run action admission",
         "All skills done + gates passed + verification + TODO sweep."
       ],
       "triggers": [

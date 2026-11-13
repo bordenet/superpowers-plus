@@ -121,6 +121,8 @@ _install_hook_scripts() {
   mkdir -p "$CLAUDE_HOOKS_DIR"
   for h in "$HOOKS_SRC"/*.sh; do
     [[ -f "$h" ]] || continue
+    # Paired mandatory adapter files have their own registration/ownership path.
+    [[ "${h##*/}" == pre-tool-use-review-strategy.sh ]] && continue
     install -m 0755 "$h" "$CLAUDE_HOOKS_DIR/$(basename "$h")"
     count=$((count + 1))
   done
@@ -272,6 +274,44 @@ _check_state() {
   return $ok
 }
 
+# Refresh only existing registrations for our two Codex lifecycle copies.
+# Do not create registrations, rewrite hooks.json, or take over custom commands.
+_refresh_registered_codex_hooks() {
+  local config="$HOME/.codex/hooks.json" names name
+  [[ -f "$config" ]] || return 0
+  names="$(python3 - "$config" "$HOME" <<'CODEX_PY'
+import json, os, shlex, sys
+config, home = sys.argv[1:]
+with open(config, encoding='utf-8') as stream:
+    hooks = json.load(stream).get('hooks', {})
+for event, name in [('SessionStart', 'session-start-rules-integrity.sh'),
+                    ('UserPromptSubmit', 'user-prompt-submit-skill-router.sh')]:
+    target = os.path.join(home, '.codex', 'hooks', name)
+    for group in hooks.get(event, []):
+        for hook in group.get('hooks', []):
+            if hook.get('type') != 'command' or not isinstance(hook.get('command'), str):
+                continue
+            try:
+                words = shlex.split(hook['command'])
+            except ValueError:
+                continue
+            if len(words) == 1 and os.path.abspath(os.path.expanduser(
+                    os.path.expandvars(words[0]))) == target:
+                print(name)
+                break
+        else:
+            continue
+        break
+CODEX_PY
+)" || { log_error "Cannot read Codex hook registrations: $config"; return 1; }
+  [[ -n "$names" ]] || return 0
+  mkdir -p "$HOME/.codex/hooks"
+  while IFS= read -r name; do
+    install -m 0755 "$HOOKS_SRC/$name" "$HOME/.codex/hooks/$name"
+    log_info "Refreshed registered Codex hook: $name"
+  done <<< "$names"
+}
+
 # ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
@@ -281,6 +321,10 @@ main() {
   _verify_bypass_clause
   _check_cli_version
   _install_hook_scripts
+  _refresh_registered_codex_hooks
+  if [[ -f "$REPO_ROOT/setup/install-review-strategy-hooks.py" ]]; then
+    python3 "$REPO_ROOT/setup/install-review-strategy-hooks.py" --home "$HOME" --refresh-existing
+  fi
   _install_patterns
   _merge_settings
   log_info "Done. Run with --check to verify installed state."

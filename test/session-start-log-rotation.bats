@@ -20,14 +20,42 @@ file_size() {
 }
 
 backdate_seconds() {
-    local path="$1" seconds="$2" old_time timestamp
+    local path="$1" seconds="$2" old_time
     old_time=$(($(date +%s) - seconds))
-    timestamp="$(date -r "$old_time" +%Y%m%d%H%M.%S 2>/dev/null || date -d "@$old_time" +%Y%m%d%H%M.%S)"
-    touch -t "$timestamp" "$path"
+    # Local calendar strings are ambiguous during a daylight-saving fold.
+    python3 - "$path" "$old_time" <<'PYTIME'
+import os,sys
+stamp=int(sys.argv[2]);os.utime(sys.argv[1],(stamp,stamp))
+PYTIME
 }
 
 run_session_start() {
     HOME="$TEST_HOME" run bash "$HOOK" <<<"$HOOK_INPUT"
+}
+
+@test "backdating uses elapsed seconds across repeated local hours" {
+    local stub_dir="$BATS_TEST_TMPDIR/frozen-clock" probe="$BATS_TEST_TMPDIR/epoch-probe"
+    local zone
+    mkdir -p "$stub_dir"
+    REAL_DATE="$(command -v date)"
+    export REAL_DATE
+    cat > "$stub_dir/date" <<'DATESTUB'
+#!/usr/bin/env bash
+if [[ "$*" == +%s ]]; then echo 1793525400; else exec "$REAL_DATE" "$@"; fi
+DATESTUB
+    chmod +x "$stub_dir/date"
+    touch "$probe"
+    for zone in system America/Los_Angeles UTC; do
+        if [[ "$zone" == system ]]; then
+            (unset TZ; PATH="$stub_dir:$PATH" backdate_seconds "$probe" 3600)
+        else
+            TZ="$zone" PATH="$stub_dir:$PATH" backdate_seconds "$probe" 3600
+        fi
+        python3 - "$probe" <<'CHECKTIME'
+import os,sys
+assert int(os.stat(sys.argv[1]).st_mtime)==1793521800
+CHECKTIME
+    done
 }
 
 @test "P1e: SessionStart rotates an oversized audit log and retains two bounded generations" {

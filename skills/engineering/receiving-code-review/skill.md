@@ -28,6 +28,15 @@ composition:
 
 > **Wrong skill?** Reviewing someone's PR → `providing-code-review`. Sending to reviewer agent → `code-review`. Acting as reviewer → `code-review-respond`.
 
+## Strategy before execution
+
+Before every automated review or test/check pass, resolve a snapshot-bound
+REUSE, WAIT, RUN_MINIMAL, REVIEW_REQUIRED or STOP decision at its supported
+execution/dispatch boundary. Reuse valid coverage or join its active producer.
+Missing/stale decisions refuse; unknown coverage stays conservative. No model
+calls or recursive checks inside strategy. Status/HEAD changes, clean reviews
+and score targets alone never justify another expensive pass.
+
 ## When to Use
 
 - After receiving PR/MR review comments from any reviewer
@@ -49,7 +58,7 @@ WHEN receiving code review feedback:
   3. VERIFY: Check against codebase reality
   4. EVALUATE: Technically sound for THIS codebase?
   5. RESPOND: Technical acknowledgment or reasoned pushback
-  6. IMPLEMENT: One item at a time, test each
+  6. IMPLEMENT: One item at a time; strategy selects affected coverage and reuses valid prior checks
   7. SYSTEMIC CHECK: Search for OTHER instances (see below)
 
 ## 🚨 Systemic Verification (MANDATORY)
@@ -62,7 +71,7 @@ AFTER implementing all items:
 
 1. EXTRACT the underlying principle/goal — e.g., "Remove all silent defaults" not "fix these 3 lines"
 2. SEARCH for OTHER instances of the same pattern: `grep -rn "pattern" --include="*.ts" .`
-3. FIX any additional instances found
+3. FIX additional instances within the authorized boundary; report unrelated findings without expanding scope
 4. VERIFY the GOAL is achieved, not just the checklist
 
 ### Why This Exists

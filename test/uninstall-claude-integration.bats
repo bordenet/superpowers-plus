@@ -15,7 +15,8 @@
 REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
 
 setup() {
-    export HOME="$BATS_TEST_TMPDIR/home"
+    export HOME="$(cd "$BATS_TEST_TMPDIR" && pwd -P)/home"
+    export CODEX_HOME="$HOME/.codex" CLAUDE_CONFIG_DIR="$HOME/.claude"
     local c="$HOME/.claude" m="$HOME/.codex/superpowers-plus"
     mkdir -p "$c/hooks" "$c/commands" "$c/skills/_shared" "$HOME/.codex/skills/_shared" \
              "$m/tools" "$HOME/.local/bin" "$HOME/.config/claude-hooks"
@@ -23,6 +24,8 @@ setup() {
     # Everything install.sh would have put there.
     local h
     for h in "$REPO_ROOT"/tools/claude-hooks/*.sh; do
+        # The paired strategy hook uses its dedicated registrar, never this loop.
+        [[ "${h##*/}" == pre-tool-use-review-strategy.sh ]] && continue
         cp "$h" "$c/hooks/"
     done
     printf -- '---\ndescription: "x"\nsource: "claude-commands-mirror"\n---\nbody\n' > "$c/commands/mirrored.md"
@@ -43,7 +46,7 @@ setup() {
 import json, os, sys
 path, src = sys.argv[1], sys.argv[2]
 ours = [{"type": "command", "command": "$HOME/.claude/hooks/" + n}
-        for n in sorted(os.listdir(src)) if n.endswith(".sh")]
+        for n in sorted(os.listdir(src)) if n.endswith(".sh") and n != "pre-tool-use-review-strategy.sh"]
 data = {"model": "opus", "permissions": {"allow": ["Bash(ls:*)"]},
         "hooks": {"UserPromptSubmit": [{"hooks": [{"type": "command", "command": "/user/own/hook.sh"}]}],
                   "PreToolUse": [{"matcher": "Bash", "hooks": ours}]}}

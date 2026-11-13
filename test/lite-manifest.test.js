@@ -47,7 +47,7 @@ test('repository manifest validates against the full source inventory', () => {
     assert.ok(report.skill_count > report.core_count);
     assert.equal(report.manifest_entry_count, CORE.length);
     assert.equal(report.default_tier, 'on-demand');
-    assert.equal(report.core_metadata_bytes, 2390);
+    assert.equal(report.core_metadata_bytes, 2318);
 });
 
 test('valid manifest includes references without listing them as core', () => fixture(f => {
