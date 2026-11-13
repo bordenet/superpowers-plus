@@ -1,0 +1,5 @@
+{
+  "schema": 1,
+  "enabled": true,
+  "protocol": "local PreToolUse with explicit deny; native trust/activation checked separately"
+}

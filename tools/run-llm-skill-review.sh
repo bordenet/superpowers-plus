@@ -18,6 +18,10 @@
 # EXIT:    0  sentinel written
 #          1  invalid args / refusal / envelope missing / verifier falsified / ADR-003 gate
 # -----------------------------------------------------------------------------
+# Only the registered producer executes the native body and seals its result.
+# shellcheck disable=SC2093
+exec python3 "$(dirname "$0")/review-dispatch-guard.py" --native-write skill "$0" "$@"
+# REVIEW_NATIVE_BODY
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -215,6 +219,7 @@ fi
 
 TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "v2|${SENTINEL_SHA}|${VERDICT}|${TIMESTAMP}|mean=${MIN_SCORE}|unresolved_s0_s1=0|evidence_replay=${EVIDENCE_REPLAY}" > "$SENTINEL"
+
 chmod 0644 "$SENTINEL" 2>/dev/null || true
 
 echo "==========================================================="

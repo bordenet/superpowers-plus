@@ -15,7 +15,13 @@
 # -----------------------------------------------------------------------------
 set -uo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# All callers (including native pre-push) share content-based PASS receipts.
+# The helper executes the body below; this process must not fall through.
+# shellcheck disable=SC2093
+exec python3 "$(dirname "$0")/validation-receipt.py" "$0" "$@"
+# VALIDATION_RECEIPT_BODY
+set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT" || { echo "❌ Could not cd to $REPO_ROOT" >&2; exit 1; }
 
@@ -70,7 +76,11 @@ if [[ -x "$TREE_GUARD" ]]; then
         FAILED+=("working-tree guard (sweep)")
     fi
     TREE_STATE="$(mktemp)"
-    "$TREE_GUARD" snapshot "$TREE_STATE" || TREE_STATE=""
+    if ! "$TREE_GUARD" snapshot "$TREE_STATE"; then
+        rm -f "$TREE_STATE"
+        TREE_STATE=""
+        FAILED+=("working-tree guard (snapshot)")
+    fi
 fi
 
 # Per-suite wall time is recorded and reprinted in the summary. Without it,
@@ -102,8 +112,8 @@ run_suite() {
 # shellcheck disable=SC2329  # invoked indirectly via run_suite "label" run_shellcheck
 run_shellcheck() {
     if ! command -v shellcheck >/dev/null 2>&1; then
-        echo "⚠️  shellcheck not installed; skipping"
-        return 0
+        echo "❌ shellcheck is required for registered lint coverage" >&2
+        return 127
     fi
     # Match the scope used by tools/harsh-review.sh: every tracked .sh plus
     # extensionless hooks under tools/. Exclude vendored / generated paths.
@@ -242,7 +252,7 @@ run_bats_tests_dir() {
     # property is unchanged -- the interfering file still never runs
     # concurrently with anything, including itself.
     # To retire this carve-out: fix the shared mutable state in the named file,
-    # remove it here, and confirm the suite is green over 3 consecutive runs.
+    # remove it here only with bounded production-path concurrency/isolation proof.
     local serial_only=("commit-gate-test.bats")
 
     local -a parallel_files=() serial_files=()
@@ -336,7 +346,9 @@ run_bats_skill_guards() {
 
 # shellcheck disable=SC2329  # invoked indirectly via run_suite
 run_harsh_review() {
-    bash "$SCRIPT_DIR/harsh-review.sh"
+    # shellcheck source=tools/lib/validation-check-bodies.sh
+    source "$SCRIPT_DIR/lib/validation-check-bodies.sh"
+    validation_check_body harsh
 }
 
 [[ "$RUN_SHELLCHECK" -eq 1 ]] && run_suite "shellcheck"      run_shellcheck
