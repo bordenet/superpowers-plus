@@ -10,26 +10,26 @@ REPO_ROOT="$(cd "$(dirname "$BATS_TEST_FILENAME")/.." && pwd)"
 SCRIPT="$REPO_ROOT/tools/run-battery.sh"
 
 @test "run-battery: --help exits 0 and lists --staged" {
-    run bash "$SCRIPT" --help
+    run bash "$BODY_SCRIPT" --help
     [ "$status" -eq 0 ]
     [[ "$output" == *"--staged"* ]]
     [[ "$output" == *"PASS_WITH_NITS"* ]]
 }
 
 @test "run-battery: rejects unknown flag" {
-    run bash "$SCRIPT" --bogus
+    run bash "$BODY_SCRIPT" --bogus
     [ "$status" -eq 1 ]
     [[ "$output" == *"Unknown flag"* ]]
 }
 
 @test "run-battery: rejects invalid verdict" {
-    run bash "$SCRIPT" --verdict BOGUS
+    run bash "$BODY_SCRIPT" --verdict BOGUS
     [ "$status" -eq 1 ]
     [[ "$output" == *"Invalid verdict"* ]]
 }
 
 @test "run-battery: rejects invalid min-score" {
-    run bash "$SCRIPT" --min-score 99
+    run bash "$BODY_SCRIPT" --min-score 99
     [ "$status" -eq 1 ]
     [[ "$output" == *"Invalid --min-score"* ]]
 }
@@ -37,6 +37,10 @@ SCRIPT="$REPO_ROOT/tools/run-battery.sh"
 setup() {
     SANDBOX="$BATS_TEST_TMPDIR/repo"
     mkdir -p "$SANDBOX"
+    # Argument parsing is a native-body unit; dispatcher integration is covered
+    # separately by review-strategy.test.js against a configured source repo.
+    BODY_SCRIPT="$BATS_TEST_TMPDIR/run-battery-body.sh"
+    sed '1,/# REVIEW_NATIVE_BODY/d' "$SCRIPT" > "$BODY_SCRIPT"
     cd "$SANDBOX"
     git init -q -b main >/dev/null
     git config user.email "test@example.com"

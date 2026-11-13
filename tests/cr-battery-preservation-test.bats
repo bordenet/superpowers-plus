@@ -19,7 +19,9 @@ setup() {
     mkdir -p tools
     # Copy the live run-battery.sh and stub every step the gate sits behind
     # so the gate itself is the unit under test (not the upstream steps).
-    cp "$REPO_ROOT/tools/run-battery.sh" tools/
+    # Unit cases exercise the exact native BODY, not a partial installation.
+    # Public wrapper/dispatcher integration lives in review-strategy.test.js.
+    sed '1,/# REVIEW_NATIVE_BODY/d' "$REPO_ROOT/tools/run-battery.sh" > tools/run-battery.sh
     chmod +x tools/run-battery.sh
     mkdir -p tools/tests test
     # Step 1: harsh-review.sh (next to run-battery.sh).

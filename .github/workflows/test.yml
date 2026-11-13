@@ -10,6 +10,9 @@ jobs:
   node-tests:
     name: Node.js Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -18,32 +21,102 @@ jobs:
         with:
           node-version-file: .nvmrc
 
+      # Plans are published before dependency installation. The helper elects
+      # the oldest equivalent run, waits for its verified result, and fails closed.
+      - name: Describe validation inputs
+        id: inputs
+        run: node tools/ci-validation-reuse.js plan node
+
+      - name: Publish validation plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.inputs.outputs.plan-name }}
+          path: .ci-validation/node/plan.json
+          retention-days: 90
+          include-hidden-files: true
+          overwrite: true
+
+      - name: Reuse equivalent validation
+        id: reuse
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node tools/ci-validation-reuse.js resolve node
+
+      - name: Validation execution marker
+        if: steps.reuse.outputs.skip != 'true'
+        run: echo "Running fresh node validation"
+
       - name: Install MCP dependencies
+        if: steps.reuse.outputs.skip != 'true'
         run: cd mcp && npm ci
 
+      - name: Validation reuse regression tests
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-validation-reuse-regression-tests
+
+      - name: Receipt producer regressions
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-receipt-producer-regressions
+
+      - name: Toolchain compatibility regressions
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-toolchain-compatibility-regressions
+
+      - name: Strategy boundary regressions
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-strategy-boundary-regressions
+
+      - name: Input closure regressions
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-input-closure-regressions
+
+      - name: Review dispatch regressions
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-review-dispatch-regressions
+
+      - name: Review hook installation regressions
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-review-hook-install-regressions
+
+      - name: Strategy policy regressions
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-strategy-policy-regressions
+
+      - name: CI boundary registry regressions
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-ci-boundary-registry-regressions
+
       - name: Frontmatter parser tests
-        run: node test/frontmatter.test.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-frontmatter-parser-tests
 
       - name: Skill router tests
-        run: node test/skill-router.test.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-skill-router-tests
 
       - name: Skill discovery tests
-        run: node test/skill-discovery.test.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-skill-discovery-tests
 
       - name: Composition engine tests
-        run: node test/composition-engine.test.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-composition-engine-tests
 
       - name: Workflow state tests
-        run: node test/workflow-state.test.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-workflow-state-tests
 
       - name: Compression unit tests
-        run: node test/compress.test.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-compression-unit-tests
 
       - name: Compression safety gate
-        run: node test/compression-safety.test.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-compression-safety-gate
 
       - name: EI-move detector
-        run: node test/ei-move-detector.test.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-ei-move-detector
         env:
           # Waivers are declared in the PR body as: EI-WAIVER: <skill> -<pct>% — <reason>
           # On push events github.event.pull_request is null so EI_WAIVERS is
@@ -52,46 +125,72 @@ jobs:
           EI_WAIVERS: ${{ github.event_name == 'pull_request' && github.event.pull_request.body || '' }}
 
       - name: Operative-move detector
-        run: node test/operative-move-detector.test.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-operative-move-detector
         env:
           # Waivers are declared in the PR body as: OP-WAIVER: <skill> <pattern> -<n> — <reason>
           OP_WAIVERS: ${{ github.event_name == 'pull_request' && github.event.pull_request.body || '' }}
 
       - name: Hub-anchor validator
-        run: node test/hub-anchor-validator.test.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-hub-anchor-validator
 
       - name: Skill-invocation smoke
-        run: node test/skill-invocation-smoke.test.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-skill-invocation-smoke
 
       - name: Visual companion keyed server
-        run: node --test test/brainstorm-literal-content.test.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-visual-companion-keyed-server
 
       - name: MCP smoke test
-        run: cd mcp && npm test
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-mcp-smoke-test
         env:
           PERSONAL_SKILLS_DIR: ${{ github.workspace }}/skills
           SUPERPOWERS_SKILLS_DIR: /dev/null
 
       - name: Language scanner tests
-        run: node test/language-scanner.test.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-language-scanner-tests
 
       - name: use-skill CLI tests
-        run: node test/use-skill-cli.test.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-use-skill-cli-tests
 
       - name: CR battery evidence verifier tests
-        run: node test/verify-cr-battery-evidence.test.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-cr-battery-evidence-verifier-tests
 
       - name: Lite manifest validation
-        run: node scripts/validate-lite-manifest.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-lite-manifest-validation
 
       - name: Lite manifest regression tests
-        run: node test/lite-manifest.test.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-lite-manifest-regression-tests
 
       - name: Full oracle input parity
-        run: node test/lite-full-unchanged.test.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-full-oracle-input-parity
 
       - name: Full installed output parity
-        run: node test/lite-full-installed.test.js
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:node-tests-full-installed-output-parity
+
+      - name: Record successful validation
+        if: success() && steps.reuse.outputs.skip != 'true'
+        run: node tools/ci-validation-reuse.js receipt node
+
+      - name: Publish successful validation
+        if: success() && steps.reuse.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.inputs.outputs.pass-name }}
+          path: .ci-validation/node/receipt.json
+          retention-days: 90
+          include-hidden-files: true
+          overwrite: true
 
   shell-tests:
     name: Shell Tests
@@ -101,49 +200,44 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
 
-      # Promotion dedupe. A PR into main whose merge result has the
-      # SAME TREE as a commit that already passed this workflow on a push to
-      # dev/main re-tests byte-identical code: ~8.5 min for nothing
-      # per promotion. Skip the heavy steps only when (1) this PR's merge
-      # result tree equals its head tree (the base adds nothing untested) and
-      # (2) a successful push run of this workflow exists for a commit with
-      # that exact tree. Any error or doubt falls through to a full run. The job
-      # still reports success, so the required "Shell Tests" check is satisfied.
-      - name: Skip if this exact tree already passed (promotion dedupe)
-        id: dedupe
-        if: github.event_name == 'pull_request' && github.base_ref == 'main'
+      # Plans are published before dependency installation. The helper elects
+      # the oldest equivalent run, waits for its verified result, and fails closed.
+      - name: Describe validation inputs
+        id: inputs
+        run: node tools/ci-validation-reuse.js plan shell
+
+      - name: Publish validation plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.inputs.outputs.plan-name }}
+          path: .ci-validation/shell/plan.json
+          retention-days: 90
+          include-hidden-files: true
+          overwrite: true
+
+      - name: Reuse equivalent validation
+        id: reuse
         env:
           GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          set -uo pipefail
-          full() { echo "dedupe: $1 -- running the full suite"; exit 0; }
-          git fetch --no-tags --depth=1 origin "$HEAD_SHA" >/dev/null 2>&1 || full "cannot fetch head"
-          merge_tree="$(git rev-parse 'HEAD^{tree}')" || full "no merge tree"
-          head_tree="$(git rev-parse "${HEAD_SHA}^{tree}")" || full "no head tree"
-          [ "$merge_tree" = "$head_tree" ] || full "merge result differs from head"
-          shas="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/test.yml/runs?event=push&status=success&per_page=30" \
-                  --jq '.workflow_runs[] | select(.head_branch=="dev" or .head_branch=="main") | .head_sha')" \
-                  || full "cannot list prior runs"
-          for sha in $shas; do
-            tree="$(gh api "repos/${GITHUB_REPOSITORY}/git/commits/${sha}" --jq '.tree.sha' 2>/dev/null)" || continue
-            if [ "$tree" = "$head_tree" ]; then
-              echo "skip=true" >> "$GITHUB_OUTPUT"
-              echo "dedupe: tree $head_tree already passed Tests on push (commit $sha) -- skipping heavy steps"
-              exit 0
-            fi
-          done
-          full "no successful push run found for tree $head_tree"
+        run: node tools/ci-validation-reuse.js resolve shell
+
+      - name: Validation execution marker
+        if: steps.reuse.outputs.skip != 'true'
+        run: echo "Running fresh shell validation"
 
       - name: Configure git identity
-        if: steps.dedupe.outputs.skip != 'true'
+        if: steps.reuse.outputs.skip != 'true'
         run: |
           git config --global user.email "ci@superpowers-plus.test"
           git config --global user.name "CI Runner"
-
       - name: Install BATS
-        if: steps.dedupe.outputs.skip != 'true'
+        if: steps.reuse.outputs.skip != 'true'
         run: |
           git clone --depth 1 --branch v1.11.0 \
             https://github.com/bats-core/bats-core.git /tmp/bats
@@ -153,58 +247,66 @@ jobs:
           git -C /tmp/bats checkout 41fb1bc31d1849b406fb18d4a6d8c6644b8300e7
           sudo /tmp/bats/install.sh /usr/local
 
+      - name: Install shellcheck
+        if: steps.reuse.outputs.skip != 'true'
+        run: |
+          if ! provision="$(python3 tools/validation-toolchain.py --provision-shellcheck "$RUNNER_TEMP/spp-shellcheck" 2>&1)"; then
+            printf '%s\n' "$provision" >&2
+            [[ "$provision" == *"HTTP Error 50"[234]* ]]
+            bash .github/scripts/provision-shellcheck-fallback.sh "$RUNNER_TEMP/spp-shellcheck"
+          fi
+          echo "$RUNNER_TEMP/spp-shellcheck" >> "$GITHUB_PATH"
+
       - name: Bats policy lint (no stale opt-outs)
-        if: steps.dedupe.outputs.skip != 'true'
-        run: bash tools/ci-bats-discovery.sh --lint
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:shell-tests-bats-policy-lint-no-stale-opt-outs
 
       - name: All bats suites (auto-discovered)
-        if: steps.dedupe.outputs.skip != 'true'
-        run: bash tools/ci-bats-discovery.sh --run
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:shell-tests-all-bats-suites-auto-discovered
 
       - name: Doctor checks tests
-        if: steps.dedupe.outputs.skip != 'true'
-        run: bash tools/tests/test_doctor_checks.sh
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:shell-tests-doctor-checks-tests
         env:
           PERSONAL_SKILLS_DIR: ${{ github.workspace }}/skills
 
       - name: TODO lock tests
-        if: steps.dedupe.outputs.skip != 'true'
-        run: bash tools/tests/test_todo_lock.sh
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:shell-tests-todo-lock-tests
 
       - name: TODO engine unit tests
-        if: steps.dedupe.outputs.skip != 'true'
-        run: python3 tools/tests/test_todo_engine.py -v
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:shell-tests-todo-engine-unit-tests
 
       - name: TODO archive tests
-        if: steps.dedupe.outputs.skip != 'true'
-        run: bash skills/productivity/todo-archive/tests/test_todo_archive.sh
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:shell-tests-todo-archive-tests
 
       - name: SKILLS.md count lint
-        if: steps.dedupe.outputs.skip != 'true'
-        run: |
-          ACTUAL=$(find skills/ -name "skill.md" -not -path "*/_adapters/*" | wc -l | tr -d ' ')
-          DECLARED=$(grep -o 'SKILL-COUNT: [0-9]*' docs/SKILLS.md | grep -o '[0-9]*')
-          if [ -z "$DECLARED" ]; then
-            echo "FAIL: <!-- SKILL-COUNT: N --> comment not found in docs/SKILLS.md"
-            exit 1
-          fi
-          if [ "$ACTUAL" != "$DECLARED" ]; then
-            echo "FAIL: docs/SKILLS.md declares $DECLARED skills but found $ACTUAL"
-            echo "Update the <!-- SKILL-COUNT: --> comment in docs/SKILLS.md to $ACTUAL"
-            exit 1
-          fi
-          echo "PASS: $ACTUAL skills match declared count in docs/SKILLS.md"
-
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:shell-tests-skills-md-count-lint
       - name: Full-corpus fence-scan (all skills/**/*.md)
-        if: steps.dedupe.outputs.skip != 'true'
-        run: |
-          mapfile -t MD_FILES < <(find skills -name "*.md")
-          bash tools/fence-scan.sh "${MD_FILES[@]}"
-
+        if: steps.reuse.outputs.skip != 'true'
+        run: bash tools/test-all.sh --check ci:shell-tests-full-corpus-fence-scan-all-skills-md
       - name: Harness -- skill size audit (advisory)
-        if: steps.dedupe.outputs.skip != 'true'
+        if: steps.reuse.outputs.skip != 'true'
         continue-on-error: true
-        run: bash tools/skill-size-audit.sh
+        run: bash tools/test-all.sh --check ci:shell-tests-harness-skill-size-audit-advisory
+
+      - name: Record successful validation
+        if: success() && steps.reuse.outputs.skip != 'true'
+        run: node tools/ci-validation-reuse.js receipt shell
+
+      - name: Publish successful validation
+        if: success() && steps.reuse.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.inputs.outputs.pass-name }}
+          path: .ci-validation/shell/receipt.json
+          retention-days: 90
+          include-hidden-files: true
+          overwrite: true
 
   security-scan:
     name: Security Scan
@@ -213,7 +315,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Dangerous pattern scan
-        run: bash tools/dangerous-pattern-scan.sh
+        run: bash tools/test-all.sh --check ci:security-scan-dangerous-pattern-scan
 
       - name: IP disclosure audit
-        run: bash test/public-repo-ip-check.test.sh
+        run: bash tools/test-all.sh --check ci:security-scan-ip-disclosure-audit
