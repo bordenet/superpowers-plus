@@ -317,6 +317,12 @@ jobs:
     env:
       SUPERPOWERS_ALLOW_ELEVATED: '1'
     steps:
+      # Prefer LF working copies so install.sh does not spend the first pass
+      # only healing CRLF (runners often default core.autocrlf=true).
+      - name: Prefer LF checkouts
+        shell: bash
+        run: git config --global core.autocrlf false
+
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
