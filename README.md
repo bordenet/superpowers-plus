@@ -10,6 +10,9 @@ superpowers-plus is 125 skills that make an assistant follow those practices, pl
 
 It builds on Jesse Vincent's [obra/superpowers](https://github.com/obra/superpowers). Superpowers teaches an agent how to work; superpowers-plus adds more skills and the hooks and gates that make the work hard to skip. It also covers non-coding work: documents, wikis, issue tracking, research.
 
+Full remains the supported installation. The Lite experiment is closed, and no
+Lite work is pending. [Lite evaluation decision](docs/lite/current-state.md)
+
 ## Quick Start
 
 Requires bash 4+, git, and Node.js 18+. macOS ships bash 3.2, so run `brew install bash` first.

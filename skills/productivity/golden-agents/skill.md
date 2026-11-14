@@ -172,7 +172,7 @@ After generating AGENTS.md, create redirect files (CLAUDE.md, CODEX.md, GEMINI.m
 ## Companion Skills
 
 - **readme-authoring**: After setting up AI guidance, update README
-- **superpowers:verification-before-completion**: Verify files before committing
+- **`verification-before-completion`**: Verify files before committing
 
 ## Failure Modes
 

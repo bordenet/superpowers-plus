@@ -553,7 +553,7 @@ def preflight(base, staged, mode):
     dirty = run(["git", "diff", "--no-ext-diff", "--quiet"], check=False).returncode or \
         run(["git", "diff", "--no-ext-diff", "--cached", "--quiet"], check=False).returncode
     route_paths = paths + [f["renamed_from"] for f in files if f.get("renamed_from")]
-    return {
+    report = {
         "head": head,
         "branch": branch,
         "mode": "staged" if staged else "branch",
@@ -574,6 +574,136 @@ def preflight(base, staged, mode):
         "inline_exemption_eligible": eligible,
         "inline_exemption_reasons": reasons,
     }
+    report['strategy'] = review_strategy(root, report)
+    return report
+
+
+def strategy_directory(root):
+    from pathlib import Path
+    common = Path(git('rev-parse', '--git-common-dir').strip())
+    return ((Path(root) / common) if not common.is_absolute() else common).resolve() / 'review-strategy-v1'
+
+
+def strategy_claim(root, snapshot, name):
+    path = strategy_directory(root) / (snapshot + '.' + name + '.json')
+    if not path.exists() and not path.is_symlink():
+        return None
+    if path.is_symlink():
+        raise ValueError('review strategy claim must not be a symlink')
+    row = json.loads(path.read_text())
+    if (not isinstance(row, dict) or row.get('schema') != 1 or
+            row.get('snapshot') != snapshot or row.get('class') != name):
+        raise ValueError('review strategy claim binding mismatch')
+    return row
+
+
+def native_binding_valid(root, claim, sentinel):
+    from pathlib import Path
+    import hashlib
+    try:
+        producer = claim['native_writer']
+        expected = {'code': 'run-battery.sh', 'skill': 'run-llm-skill-review.sh', 'design': 'run-phr.sh'}[claim['class']]
+        writer = Path(__file__).resolve().parent / expected
+        if (producer['script'] != expected or type(producer['exit']) is not int or producer['exit'] != 0 or
+                producer['snapshot'] != claim['snapshot'] or
+                producer['sha256'] != hashlib.sha256(writer.read_bytes()).hexdigest() or
+                type(producer['started']) is not int or type(producer['completed']) is not int or
+                not 0 < producer['started'] <= producer['completed']):
+            return False
+        directory = strategy_directory(root)
+        log = directory / producer['log']
+        if (log.parent != directory or log.is_symlink() or
+                not re.fullmatch(r'native-' + re.escape(claim['class']) + r'-[0-9]+\.log', log.name) or
+                hashlib.sha256(log.read_bytes()).hexdigest() != producer['log_sha256']):
+            return False
+        original = claim['sentinel_record']
+        if hashlib.sha256(original.encode()).hexdigest() != claim['sentinel_sha256']:
+            return False
+        path = Path(root) / sentinel
+        if path.is_symlink():
+            return False
+        current = path.read_text()
+        if current == original:
+            return True
+        # Native post-commit carry changes only SHA; all verdict/score/time
+        # fields remain byte-identical and the new commit contains the exact
+        # reviewed index tree. This is review reuse, not publication authority.
+        old, new = original.rstrip('\n').split('|'), current.rstrip('\n').split('|')
+        return (len(old) == len(new) and old[:1] == new[:1] and old[2:] == new[2:] and
+                re.fullmatch(r'[a-f0-9]{40}', new[1]) is not None and
+                git('rev-parse', new[1] + '^{tree}').strip() == claim['review_tree'])
+    except (OSError, ValueError, KeyError, TypeError, IndexError, UsageError):
+        return False
+
+
+_STRATEGY_OBSERVATION = None
+
+
+def current_review_snapshot(root, report):
+    from pathlib import Path
+    observation = _STRATEGY_OBSERVATION
+    if (not observation or observation['root'] != str(Path(root).resolve()) or
+            observation['snapshot'] != report['strategy']['snapshot'] or not observation['fresh']()):
+        return None
+    return observation['snapshot']
+
+
+def review_strategy(root, report):
+    """Resolve required review classes from native evidence, without dispatch.
+
+    Source, installed review guidance, configuration and behavior environment
+    bind the snapshot; HEAD/status messages are not inputs on their own.
+    Standalone legacy copies remain readable but explicitly UNENFORCED.
+    """
+    from pathlib import Path
+    import hashlib
+    import types
+    root = Path(root)
+    def load(name, path):
+        module = types.ModuleType(name)
+        module.__file__ = str(path)
+        exec(compile(path.read_bytes(), str(path), 'exec'), module.__dict__)
+        return module
+    try:
+        receipt = load('receipt', root / 'tools/validation-receipt.py')
+        strategy = load('strategy', root / 'tools/validation-strategy.py')
+    except OSError:
+        return {'snapshot': None, 'classes': {}, 'status': 'UNENFORCED',
+                'reason': 'missing-native-strategy-helper'}
+    snapshotter = load('snapshotter', root / 'tools/review-context-snapshot.py')
+    payload, fresh, stats = snapshotter.resolve(receipt, root)
+    snapshot = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+    global _STRATEGY_OBSERVATION
+    _STRATEGY_OBSERVATION = {'root': str(root.resolve()), 'snapshot': snapshot,
+                             'fresh': fresh, 'stats': stats}
+    classes = {}
+    mapping = {'.code-review-cleared': 'code', '.llm-skill-review-cleared': 'skill', '.phr-cleared': 'design'}
+    for block in report['routes']['blocks']:
+        sentinel = block.get('sentinel')
+        if sentinel not in mapping:
+            continue
+        name = mapping[sentinel]
+        state = report['sentinels'][sentinel]['state']
+        resolved_state = 'INVALID' if state in ('malformed', 'not-clearing') else 'MISSING'
+        try:
+            claim = strategy_claim(root, snapshot, name)
+            if claim:
+                expected = strategy.choose(snapshot, 'review', (name,), 'MISSING')
+                if claim.get('decision') != expected:
+                    raise ValueError('original review decision is unprovable')
+                if claim.get('result') == 'PASS':
+                    if (state in ('valid', 'stale') and claim.get('verdict') == report['sentinels'][sentinel].get('verdict')
+                            and native_binding_valid(root, claim, sentinel)):
+                        resolved_state = 'PASS'
+                    else:
+                        resolved_state = 'INVALID'
+                else:
+                    resolved_state = 'RUNNING_UNRESOLVED'
+        except (OSError, ValueError, TypeError):
+            resolved_state = 'INVALID'
+        classes[name] = strategy.choose(snapshot, 'review', (name,), resolved_state,
+                                       (name,) if resolved_state == 'PASS' else ())
+    return {'snapshot': snapshot, 'classes': classes, 'status': 'RESOLVED'}
 
 
 def main(argv):

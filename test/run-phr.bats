@@ -13,7 +13,9 @@ setup() {
     echo "x" > a.txt
     git add a.txt
     git commit -q -m init
-    cp "$SCRIPT" ./run-phr.sh
+    # Unit cases exercise the exact native BODY, not a partial installation.
+    # Public wrapper/dispatcher integration lives in review-strategy.test.js.
+    sed '1,/# REVIEW_NATIVE_BODY/d' "$SCRIPT" > ./run-phr.sh
     chmod +x ./run-phr.sh
 }
 

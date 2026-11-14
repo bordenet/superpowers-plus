@@ -43,6 +43,15 @@ composition:
 Run ONE combined reviewer by default. Dispatches up to 7 specialized reviewer agents in parallel, but only those whose signal the diff carries. A triage coordinator selects which to activate based on the diff, then aggregates findings into a unified report.
 
 **Why this exists**: A single reviewer tries to evaluate everything simultaneously, leading to shallow coverage, inconsistent focus, and ~40% false positive rates. Specialized reviewers with focused prompts produce deeper analysis with near-zero false positives.
+## Strategy before execution
+
+Before every automated review or test/check pass, resolve a snapshot-bound
+REUSE, WAIT, RUN_MINIMAL, REVIEW_REQUIRED or STOP decision at its supported
+execution/dispatch boundary. Reuse valid coverage or join its active producer.
+Missing/stale decisions refuse; unknown coverage stays conservative. No model
+calls or recursive checks inside strategy. Status/HEAD changes, clean reviews
+and score targets alone never justify another expensive pass.
+For REVIEW_REQUIRED, include `SPP_REVIEW_CLASS=code SPP_REVIEW_SNAPSHOT=<strategy.snapshot>` from the current native preflight JSON in the reviewer prompt.
 
 ## When to Use
 
@@ -57,32 +66,27 @@ Run ONE combined reviewer by default. Dispatches up to 7 specialized reviewer ag
 |---|---|---|
 | 1. `debate` | About to commit to a design before coding | Already ran this session |
 | 2. `progressive-harsh-review` | About to present a non-code deliverable | Already ran on this artifact |
-| **3. `code-review-battery`** | **About to present/commit/push code** | **Valid sentinel for HEAD exists** |
-| 4. `verification-before-completion` | About to write any results-presenting response | Sentinel SHA == HEAD → skip re-dispatch |
+| **3. `code-review-battery`** | **About to present/commit/push code** | **Native strategy proves current content/context coverage** |
+| 4. `verification-before-completion` | About to write any results-presenting response | REUSE from validated content/context → no dispatch |
 
-**One-per-unit rule:** Battery fires at most once per coherent unit of work. If a valid `.code-review-cleared` sentinel exists for HEAD, the gate is already satisfied — do not re-dispatch.
-
+**One-per-unit rule:** Battery fires at most once per coherent unit of work. Reuse a native, provenance-bound review for unchanged content/context; HEAD equality alone does not prove that binding.
 ## Procedure
-
 ### Phase 0: Sentinel Check (canonical skip gate — run before dispatching anything)
 
 This is the canonical skip gate for the one-per-unit rule. **Run `tools/review-preflight.py` first** (`--base <integration-branch>`, default `origin/dev`, or `--staged` for an uncommitted change; pass `--mode=bug-fix|feature` when given) and use its JSON -- sentinel states, BugPath mode, fired signal rows with file:line hits, rows left to judgment, and the inline-exemption answer -- instead of applying the Phase 0-1 tables by hand; the tables stay the spec. Callers (`requesting-code-review`, `finishing-a-development-branch`, `progressive-code-review-gate`) should run this before dispatching. If a caller does not implement Phase 0 explicitly, the agent should run the preflight (or apply the tables) before invoking battery.
 
-```bash
-SENTINEL="$(git rev-parse --show-toplevel 2>/dev/null || echo .)/.code-review-cleared"
-# cat succeeds on a stale sentinel (wrong SHA) — compare the printed SHA to HEAD explicitly.
-cat "$SENTINEL" 2>/dev/null || echo "NO CLEARANCE"
-echo "HEAD: $(git rev-parse HEAD 2>/dev/null)"
-git diff --quiet && git diff --cached --quiet && echo "WORKTREE_CLEAN" || echo "WORKTREE_DIRTY"
-```
+Use the native parser's per-class result and reviewed content/context, rather
+than a raw SHA comparison or a clean-status shortcut:
 
-| Sentinel state | Decision |
-|----------------|----------|
-| `NO CLEARANCE` | Run battery (proceed to Phase 1). |
-| Sentinel SHA ≠ HEAD SHA, and preflight does not report it `carried` (no in-scope file changed) | Run battery (battery is stale). |
-| Sentinel valid for HEAD but `WORKTREE_DIRTY` | Run battery (staged/unstaged changes exist that were not reviewed). |
-| Valid sentinel for HEAD (or `carried`) AND `WORKTREE_CLEAN` | **Skip.** Battery already ran on the current code. Note the clearance and skip to Phase 6. |
-| Malformed, or preflight `not-clearing` (verdict does not clear the gate) | Delete `.code-review-cleared`, run battery. |
+| Native evidence | Decision |
+|-----------------|----------|
+| Valid required-class coverage, including carried/staged content | REUSE; no reviewer dispatch. |
+| Missing or materially invalidated class | REVIEW_REQUIRED for missing/affected scope. |
+| Equivalent active owner | WAIT; join its producer rather than dispatching again. |
+| Failed, malformed, interrupted or unprovable evidence | STOP; preserve and diagnose it. |
+
+Progress messages and history-only commits do not invalidate reviewed content.
+Never delete a sentinel to force another initial review.
 
 ### Phase 0.5: BugPath Mode Detection
 
@@ -100,7 +104,6 @@ Run immediately after the sentinel check. Detect whether this is a targeted bug 
 | Explicit flag `--mode=feature` | Inactive (overrides branch detection) |
 
 **When BugPath Mode is active:** BugPath Verifier mandatory (not skippable), threshold 9.2, path-coverage floor applies (see Phase 3). SCOPE-SKIP on a confirmed bug-fix branch = Important finding, score -1.5. State mode in executive summary triage line (`reference.md` § Executive Summary Template). Also supports `--mode=bug-fix` and `--mode=feature`. If the diff also matches the Sibling Path Trace signal (Phase 1), BugPath Verifier's dispatch payload (Phase 2 step 4) MUST additionally include the "Sibling Path Trace" excerpt from `reviewers/defect-finder.md`, since BugPath Verifier's Sibling Bug Scan dimension runs that method rather than re-deriving it.
-
 ### Phase 1: Triage
 
 Analyze the diff and select reviewers:
@@ -156,7 +159,6 @@ State your triage decision before dispatching:
 ```markdown
 **Triage**: Activated: [list] | Skipped: [list] | Reason: [1-2 sentences]
 ```
-
 ### Phase 2: Diff + Source Context + Dispatch
 
 Sub-agents have NO conversation context. Pass diff + source context inline.
@@ -175,7 +177,6 @@ grep -rn "old-filename" . --include="*.md" --include="*.ts" --include="*.sh"  # 
 **MUST scan outside the changed directory.** The #1 failure mode: scoping grep to the refactored directory, missing sibling modules that reference old paths. Hits outside the diff are **mandatory CRITICAL findings** — broken consumers the author didn't update. Include grep results in every reviewer's context.
 
 **4. Dispatch ALL activated reviewers simultaneously** via `sub-agent-code-reviewer` (Augment) or `Task()` (Claude). Each gets: reviewer prompt + full diff + source context + inbound reference scan results. In BugPath Mode with the Sibling Path Trace signal also matched (Phase 1), this is the step where BugPath Verifier's payload must actually get the "Sibling Path Trace" excerpt promised in Phase 0.5 -- not just noted as a requirement earlier.
-
 ### Phase 3: Aggregate
 
 After all reviewers return:
@@ -191,10 +192,9 @@ After all reviewers return:
 **Tightening**: >10 findings → suppress Minors from body (count in summary; state "Tightening applied: [N] Minor findings suppressed"). **Score**: `10.0 − 2.5×C − 1.5×I − 0.25×M − (durable<50%?0.5:0)`, floor 0.0. Extract threshold from invocation (e.g. `/sp-cr-battery 8.5` → 8.5; default 7.0, or 9.2 in BugPath Mode). Verdict is anything other than PASS or PASS_WITH_NITS (below-threshold score, OR a Reject-classified Critical at or above threshold) → skip the sentinel write step in Phase 6 (still write the JSON envelope to `.cr-battery-runs/`). BugPath path-coverage floor: INSUFFICIENT→cap 6.5, PARTIAL→8.0, FULL→none. Metrics: durable ≥50%, convergent count, unresolved Critical=0.
 
 **Report format**: Executive Summary (see `reference.md` § Executive Summary Template) → Header → Critical → Important → Minor → Possible → Clean Dimensions → Action Classification → Durable Checks → Summary (`Findings: [N]C/[N]I/[N]M ([N] suppressed)/[N]P | durable=[N]%, convergent=[N], unresolved-critical=[N]`).
-
 ### Phase 4: Escalation (Round 2)
 
-If ANY trigger fires after Round 1, re-dispatch a focused reviewer:
+Reopen only for changed scope, actionable findings, invalidated evidence or a newly justified independent safety lens. An already-covered static trigger cannot require another clean review:
 
 | Trigger | Re-run | Why |
 |---------|--------|-----|
@@ -207,15 +207,12 @@ If ANY trigger fires after Round 1, re-dispatch a focused reviewer:
 | Diff adds new user-visible functionality with zero metric/trace emits (OE Telemetry Gate) | Standards Enforcer (OE focus — mandatory Critical) | Feature ships with no time-series metrics or trace instrumentation; cannot be operated or alarmed on |
 
 **Collect every trigger that fires and dispatch all of them together as ONE round** (same "simultaneous" dispatch discipline as Phase 2 step 4) — e.g. if both the interaction-path and inbound-reference triggers fire, that is still Round 2, one dispatch, not two sequential round-trips. Firing triggers one-at-a-time adds pure serial latency with no rigor gain: dispatching N triggered re-checks together costs the same wall-clock as dispatching one. Continue the Round 1 reviewer where possible, sending the diff slice + trigger signal and stating its earlier context is superseded for changed files; a fresh agent needs the complete Round 1 findings, not a summary. Append under `### Round 2 Findings`. Skip if `--round1-only`, all clean, or diff <20 lines.
-
 ### Phase 5: Convergence
 
-**STOP** when: unresolved Critical = 0, last 2 passes <20% new high-sev, durable ≥50%. **CONTINUE** if escalation trigger fires or Critical remains. **ESCALATE TO HUMAN** after 3 passes.
-
+**STOP** after one initial review when clean and above its floor. **CONTINUE** only for a material change, actionable finding, invalidated evidence or a justified new safety lens. **ESCALATE TO HUMAN** after 3 passes; never chase a score.
 ### Correlated-Failure Detection
 
 After synthesis: (1) evidence overlap: ≥3 reviewers cite same file+line → flag and expand scope; (2) phrasing similarity: near-identical rationale across findings → flag and re-examine from different entry; (3) clean sweep: all-zero findings → verify reviewers examined different slices. Flags trigger scope expansion, not verdict changes. See `reference.md` § Correlated-Failure Detection.
-
 ### Phase 6: Finalize Verdict + Write Sentinel
 
 **Prerequisite:** Correlated-Failure Detection has completed and no re-examination was triggered.
@@ -233,15 +230,12 @@ tools/run-battery.sh --verdict PASS --min-score "<threshold>"         # no unres
 tools/run-battery.sh --verdict PASS_WITH_NITS --min-score "<threshold>" # Minor nits remain unresolved
 ```
 
-**Timing:** Pre-commit battery → sentinel stales after commit; re-run before push. `REJECT` or `PASS_WITH_FIXES`: do NOT write sentinel — fix Critical/Important, re-dispatch, re-run.
-
+**Timing:** Native content-scoped clearance survives unchanged commits/merges. `REJECT` or `PASS_WITH_FIXES`: preserve findings, fix material defects, then strategize affected verification/delta review; never write a false sentinel.
 ### Gap Analysis + Error Handling
 Monolith found something no specialist found → candidate pattern → `candidates/`. Reviewer fails → note, don't retry. Diff >3000 lines → warn, suggest chunks, keeping structurally-related files (Caller Removal Trace or Sibling Path Trace candidates) in the same chunk or cross-passing their excerpts so neither chunk's reviewer works blind to the other file -- this bounds what one dispatch reads, not what Phase 2's full-repo grep obligation searches; a chunked sub-battery still greps the whole repo for out-of-diff references. Empty diff → skip.
-
 ## Failure Modes & Anti-Patterns
 
 See `reference.md` for the 5 standard failure modes (no-findings, FPs-from-isolation, convergence-stuck, monolith-vs-specialist, duplicated-format-parsing) and the 5 anti-patterns (all-agree, duplicates, fatigue, missing-context, over-scoping), with a companion table each (detection/correction for anti-patterns, a fix column for failure modes). Moved to the companion file to keep this skill under the per-skill line budget.
-
 ## Companion Skills
 
 - **progressive-code-review-gate**: Primary consumer (dispatches this battery pre-commit) · **providing-code-review**: Engineering rigor checklist (informs reviewer focus)

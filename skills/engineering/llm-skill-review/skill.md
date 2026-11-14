@@ -166,7 +166,9 @@ A skill.md review must also judge whether it is a well-written, sensible artifac
 
 ## Reviewer Dispatch
 
-**Default: ONE combined reviewer**, not one agent per persona. It covers Mandatory Checks A-F and the Prose/Design axes above, and MUST emit a `placement` verdict -- one sentence plus file:line answering "is this the right place, or is there a simpler root cause?" A review without `placement` is incomplete. Build its input once (changed files, `tools/fence-scan.sh` output, the reference.md sections the checks cite) and hand it over; the reviewer keeps repo access and does not re-derive what it was given.
+Obey `tools/review-preflight.py`. Only REVIEW_REQUIRED dispatches, carrying `SPP_REVIEW_CLASS=skill SPP_REVIEW_SNAPSHOT=<strategy.snapshot>`; otherwise reuse, wait or stop.
+
+**Default: ONE combined reviewer** covers Checks A-F and Prose/Design. Its mandatory `placement` verdict gives file:line and answers whether this is the right place or a simpler root cause exists; omission is incomplete. Provide changed files, registered fence output and cited reference.md sections once. The reviewer retains repo access without repeating supplied work.
 
 Add a specialist (start-points and questions in `reference.md`) **only when its signal is in the diff**:
 
@@ -185,7 +187,7 @@ Runtime Determinist (check A) and Context Efficiency Examiner (token pressure) a
 You MUST inspect these six areas and report concrete findings -- full flag lists for each are in `reference.md`. If a category has no applicable content in the artifact under review (e.g., no shell/tool-wrapper code in a pure-prompt skill), state that explicitly -- "N/A -- no shell/tool-wrapper content in this artifact" -- rather than fabricating a finding or silently omitting the section.
 
 - **A. Instruction Determinism** -- vague verbs, ambiguous trigger/routing precedence, missing pass/fail thresholds
-- **B. Shell and Runtime Portability** -- bashisms, GNU/BSD incompatibilities, unsafe quoting, fragile paths, weak cleanup. Embedded fenced examples in the skill.md/reference.md itself are in scope too -- run `tools/fence-scan.sh <changed .md file>` (see `reference.md` for why this matters and its known limitation).
+- **B. Shell and Runtime Portability** -- bashisms, GNU/BSD incompatibilities, unsafe quoting, fragile paths, weak cleanup. Embedded fenced examples in the skill.md/reference.md itself are in scope too -- run `tools/test-all.sh --check ci:shell-tests-full-corpus-fence-scan-all-skills-md` (see `reference.md` for why this matters and its known limitation).
 - **C. Tool Contract Safety** -- implicit tool selection, under-specified parameters, unparseable output, unvalidated side effects
 - **D. Failure-Mode Resilience** -- missing stop-and-report rules, looping retries, asserted-not-verified success
 - **E. Cross-Agent Interoperability** -- Claude-only behavior assumed universal, unequal Cursor/Augment support
@@ -228,13 +230,13 @@ A finding is a claim about the artifact. A claim without a way to check it is in
 | Self-reviewed in the same thinking pass as authoring | Use a sub-agent (preferred), matching `progressive-harsh-review`'s "Author != Reviewer" hard gate |
 | A scorecard skipped, or a verdict asserted without both shown | Both are mandatory for any skill.md (this skill replaces two passes, not one); Required Output Format lists them in order |
 | A clean-dimension verdict ("no issues found") ships with no evidence block | Treated identically to `verifiable: false` -- capped, not confirmed. A sentence asserting cleanliness is not evidence of it; see Evidence Requirement |
-| Embedded `bash`/`sh` example in the skill.md itself never actually run through `bash -n` | Prose review alone cannot catch this -- run `tools/fence-scan.sh <file>` before asserting the doc's own examples are clean |
+| Embedded `bash`/`sh` example in the skill.md itself never actually run through `bash -n` | Prose review alone cannot catch this -- run the registered fence check above before asserting the doc's own examples are clean |
 
 ## Enforcement Status
 
 Gate 6 requires `.llm-skill-review-cleared` **v2** for `skills/*.md`, `.ai-guidance/*.md`, and AGENTS.md-family files, and **supersedes** PHR/code-review for those classes (`tools/md-files-changed.sh` `LLM_OWNED_REGEX`). Pass (**ADR-003**): verdict `PASS`|`PASS_WITH_RISKS`, `unresolved_s0_s1=0`, non-vacuous `clean_dimensions`, `evidence_replay=ok` (or `bypassed` with `PASS` only). `--min-score` is Prose/Design mean as sentinel **metadata** (`mean=`) — Gate 6 does not floor-compare it. Envelope details: reference.md "Enforcement Detail". Non-`.md` under `skills/` stays code-review's job.
 
-**NEVER write `.llm-skill-review-cleared` directly.** There is no valid manual content -- Gate 6 enforces strict v2 pipe-delimited schema (`v2|SHA|VERDICT|TIMESTAMP|mean=N|unresolved_s0_s1=0|evidence_replay=ok`); any hand-written content is always rejected. The script writes the sentinel; you do not. Writing the file by hand is the documented recurring failure mode this warning exists to prevent.
+**NEVER write `.llm-skill-review-cleared` directly.** Only the native script writes it. Gate 6 requires `v2|SHA|VERDICT|TIMESTAMP|mean=N|unresolved_s0_s1=0|evidence_replay=ok`; manual files are rejected. This is a recurring failure mode.
 
 **Sentinel write:** findings need `severity`; the envelope needs `"head_sha"` equal to the commit being cleared; at least one `clean_dimensions` entry needs replayable evidence (`{"evidence":{"command":"...","verifiable":true}}`) — a bare string or an all-`verifiable:false` set is refused as vacuous. Then:
 

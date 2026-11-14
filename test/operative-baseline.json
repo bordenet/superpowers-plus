@@ -1,17 +1,11 @@
 {
-  "generated_at": "2026-06-29T01:44:44.839Z",
+  "generated_at": "2026-11-01T01:03:52.741Z",
   "skills": {
     "engineering/blast-radius-check/skill.md": {
       "step_headings": 7,
       "stop_markers": 0,
       "hard_gate_table": 0,
       "code_fences": 6
-    },
-    "engineering/brainstorming/skill.md": {
-      "step_headings": 0,
-      "stop_markers": 0,
-      "hard_gate_table": 0,
-      "code_fences": 1
     },
     "engineering/branch-flow-gate/skill.md": {
       "step_headings": 0,
@@ -61,23 +55,11 @@
       "hard_gate_table": 0,
       "code_fences": 2
     },
-    "engineering/executing-plans/skill.md": {
-      "step_headings": 3,
-      "stop_markers": 0,
-      "hard_gate_table": 0,
-      "code_fences": 0
-    },
     "engineering/external-cli-audit/skill.md": {
       "step_headings": 7,
       "stop_markers": 0,
       "hard_gate_table": 0,
       "code_fences": 6
-    },
-    "engineering/feature-development/skill.md": {
-      "step_headings": 7,
-      "stop_markers": 0,
-      "hard_gate_table": 1,
-      "code_fences": 2
     },
     "engineering/field-rename-verification/skill.md": {
       "step_headings": 0,
@@ -251,7 +233,7 @@
       "step_headings": 0,
       "stop_markers": 0,
       "hard_gate_table": 0,
-      "code_fences": 10
+      "code_fences": 9
     },
     "engineering/using-git-worktrees/skill.md": {
       "step_headings": 0,
@@ -264,12 +246,6 @@
       "stop_markers": 0,
       "hard_gate_table": 0,
       "code_fences": 1
-    },
-    "engineering/verification-before-completion/skill.md": {
-      "step_headings": 2,
-      "stop_markers": 0,
-      "hard_gate_table": 4,
-      "code_fences": 4
     },
     "experimental/experimental-self-prompting/skill.md": {
       "step_headings": 4,
@@ -330,12 +306,6 @@
       "stop_markers": 0,
       "hard_gate_table": 0,
       "code_fences": 1
-    },
-    "observability/holistic-repo-verification/skill.md": {
-      "step_headings": 0,
-      "stop_markers": 0,
-      "hard_gate_table": 0,
-      "code_fences": 6
     },
     "observability/measurement-integrity/skill.md": {
       "step_headings": 0,

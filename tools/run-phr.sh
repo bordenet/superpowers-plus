@@ -31,6 +31,10 @@
 #   carried forward to the new HEAD SHA without a fresh PHR round. See
 #   tools/post-commit.
 # -----------------------------------------------------------------------------
+# Only the registered producer executes the native body and seals its result.
+# shellcheck disable=SC2093
+exec python3 "$(dirname "$0")/review-dispatch-guard.py" --native-write design "$0" "$@"
+# REVIEW_NATIVE_BODY
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -126,6 +130,7 @@ TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 SENTINEL_SHA="$(git rev-parse HEAD)"
 
 echo "v1|${SENTINEL_SHA}|${VERDICT}|${TIMESTAMP}|min-score=${MIN_SCORE}" > "$SENTINEL"
+
 chmod 0644 "$SENTINEL" 2>/dev/null || true
 
 echo "==========================================================="

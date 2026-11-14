@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "default_tier": "on-demand",
+  "skills": [
+    {
+      "name": "branch-sync-gate",
+      "path": "skills/engineering/branch-sync-gate/skill.md",
+      "tier": "core",
+      "hosts": {
+        "claude-code": "sp-sync",
+        "augment": "sp-sync",
+        "codex": "sp-sync"
+      }
+    },
+    {
+      "name": "merge-authorization-gate",
+      "path": "skills/engineering/merge-authorization-gate/skill.md",
+      "tier": "core",
+      "hosts": {
+        "claude-code": "merge-authorization-gate",
+        "augment": "merge-authorization-gate",
+        "codex": "merge-authorization-gate"
+      }
+    },
+    {
+      "name": "push-authorization-gate",
+      "path": "skills/engineering/push-authorization-gate/skill.md",
+      "tier": "core",
+      "hosts": {
+        "claude-code": "push-authorization-gate",
+        "augment": "push-authorization-gate",
+        "codex": "push-authorization-gate"
+      }
+    },
+    {
+      "name": "superpowers-doctor",
+      "path": "skills/observability/superpowers-doctor/skill.md",
+      "tier": "core",
+      "hosts": {
+        "claude-code": "sp-doctor",
+        "augment": "sp-doctor",
+        "codex": "sp-doctor"
+      }
+    },
+    {
+      "name": "systematic-debugging",
+      "path": "skills/engineering/systematic-debugging/skill.md",
+      "tier": "core",
+      "hosts": {
+        "claude-code": "sp-debug",
+        "augment": "sp-debug",
+        "codex": "sp-debug"
+      }
+    },
+    {
+      "name": "unified-commit-gate",
+      "path": "skills/engineering/unified-commit-gate/skill.md",
+      "tier": "core",
+      "hosts": {
+        "claude-code": "sp-commit",
+        "augment": "sp-commit",
+        "codex": "sp-commit"
+      }
+    },
+    {
+      "name": "using-superpowers",
+      "path": "skills/engineering/using-superpowers/skill.md",
+      "tier": "core",
+      "hosts": {
+        "claude-code": "using-superpowers",
+        "augment": "using-superpowers",
+        "codex": "using-superpowers"
+      }
+    },
+    {
+      "name": "verification-before-completion",
+      "path": "skills/engineering/verification-before-completion/skill.md",
+      "tier": "core",
+      "hosts": {
+        "claude-code": "sp-verify",
+        "augment": "sp-verify",
+        "codex": "sp-verify"
+      }
+    }
+  ]
+}
