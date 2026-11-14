@@ -197,12 +197,12 @@ if [ -n "$(find "$SCRIPT_DIR" -name '*.sh' -exec grep -rl $'\r' {} + 2>/dev/null
         fi
         mv "${f}.tmp" "$f"
     done
-    echo "[WARN] Fixed Windows line endings (CRLF → LF) in installer scripts."
-    echo "       Re-run: $0 $*"
-    echo ""
+    echo "[WARN] Fixed Windows line endings (CRLF → LF) in installer scripts; continuing."
     echo "       To prevent this, configure git:"
     echo "         git config --global core.autocrlf input"
-    exit 0
+    # Match uninstall.sh: re-exec so the rest of this run uses the healed files.
+    # A second pass finds no CR and continues into the real install.
+    exec bash "$0" "$@"
 fi
 
 # --- Source modules in dependency order ---
