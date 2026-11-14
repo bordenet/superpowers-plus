@@ -23,6 +23,7 @@
 'use strict';
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
@@ -243,7 +244,12 @@ for (const [name, fx] of Object.entries(skills)) {
     }
 
     // spo: without SPO configured → non-zero exit, no crash
-    const spoResult = run(['use-skill', 'spo:think-twice'], { SP_OVERLAY_SOURCE_DIR: '', SPC_SOURCE_DIR: '' });
+    // ~/.codex/.env fills empty overlay vars, so HOME points at an empty dir.
+    const isolatedHome = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-smoke-'));
+    const spoResult = run(['use-skill', 'spo:think-twice'], {
+        SP_OVERLAY_SOURCE_DIR: '', SPC_SOURCE_DIR: '', HOME: isolatedHome, USERPROFILE: isolatedHome,
+    });
+    fs.rmSync(isolatedHome, { recursive: true, force: true });
     if (spoResult.code !== 0) {
         nsTests.push('spo: without overlay configured: graceful non-zero exit ✓');
     } else {
