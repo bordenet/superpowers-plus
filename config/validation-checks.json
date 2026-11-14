@@ -48,7 +48,16 @@
     "Install BATS",
     "Install MCP dependencies",
     "Install shellcheck",
-    "Configure git identity"
+    "Configure git identity",
+    "Prefer LF checkouts",
+    "install.ps1 refuses an elevated shell without the override",
+    "install.ps1 (Git Bash bootstrap + install.sh)",
+    "Verify installed state",
+    "python3.cmd shim (PowerShell)",
+    "install.ps1 again (idempotent)",
+    "-Force bypasses the ecosystem lock only",
+    "Bats under Git Bash (advisory)",
+    "install.ps1 -Uninstall"
   ],
   "protocol_steps": [
     "Describe validation inputs",
