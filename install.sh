@@ -12,7 +12,8 @@
 #        --force         Overwrite existing skills without prompting
 #        --upgrade       Pull latest changes before installing
 #        --version       Show version number
-# PLATFORM: macOS (Intel/Apple Silicon), Linux (Debian/Ubuntu, RHEL/Fedora, Arch), WSL
+# PLATFORM: macOS (Intel/Apple Silicon), Linux (Debian/Ubuntu, RHEL/Fedora, Arch), WSL,
+#           Windows via Git Bash (bootstrapped by install.ps1)
 # VERSION: 5.3.0
 # ARCHITECTURE: This file is a thin orchestrator. Implementation lives in
 #               lib/install/*.sh modules, sourced in dependency order below.
@@ -81,6 +82,11 @@ if [[ -n "$_missing_cmds" ]]; then
         [[ "$_missing_cmds" == *git* ]]     && echo "║    xcode-select --install       (includes git)                  ║" >&2
         [[ "$_missing_cmds" == *node* ]]    && echo "║    brew install node            (or: https://nodejs.org)         ║" >&2
         [[ "$_missing_cmds" == *python3* ]] && echo "║    brew install python3                                          ║" >&2
+    elif [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
+        echo "║  Windows fix (PowerShell, from the repo root):                 ║" >&2
+        echo "║    powershell -ExecutionPolicy Bypass -File .\\install.ps1      ║" >&2
+        printf '║  %-62s║\n' "It installs python and jq via winget. If git or node is" \
+            "missing, it prints the winget command to run elevated." >&2
     else
         echo "║  Linux fix:                                                    ║" >&2
         [[ "$_missing_cmds" == *git* ]]     && echo "║    sudo apt install git         (or yum/dnf/apk)                 ║" >&2
@@ -92,6 +98,11 @@ if [[ -n "$_missing_cmds" ]]; then
     exit 1
 fi
 unset _missing_cmds _cmd
+
+# Windows Python defaults to the ANSI code page; skill files are UTF-8.
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" ]]; then
+    export PYTHONUTF8=1
+fi
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -807,7 +818,8 @@ main() {
     # Guard: refuse to overwrite a foreign superpowers ecosystem deployment.
     # check_foreign_ecosystem is defined in lib/install/deploy.sh (sourced above).
     # It reads ~/.codex/.superpowers-ecosystem and exits 1 if a different
-    # ecosystem already owns this machine, unless --force was passed.
+    # ecosystem already owns this machine, unless --force was passed or
+    # SUPERPOWERS_ALLOW_FOREIGN_ECOSYSTEM=1 is set.
     check_foreign_ecosystem
 
     # Handle --upgrade mode (explicit upgrade of existing installation)
