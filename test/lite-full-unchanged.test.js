@@ -8,7 +8,9 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '..');
-const ORACLE = '09d0281da0ee33198937f6b8e54390d9b82ba3f3';
+// The native Windows installer changed four source inputs. Installed output
+// is still checked against the earlier Full oracle by lite-full-installed.
+const ORACLE = 'a5875bf634ed15498e027269df9c0860f7e9e04c';
 
 // P1 changes metadata/CI only. Freeze both payload and installer/runtime inputs
 // to prove that Full sees no new file, changed byte, destination, or command.

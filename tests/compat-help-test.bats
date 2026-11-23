@@ -29,6 +29,12 @@
 }
 
 @test "todo-crud.sh self-test still passes after compat fix" {
-    run ./tools/todo-crud.sh self-test
+    local fixture_home="$BATS_TEST_TMPDIR/home"
+    mkdir -p "$fixture_home/.codex"
+    printf '# TODO\n' > "$fixture_home/.codex/TODO.md"
+    run env HOME="$fixture_home" TODO_FILE_PATH="$fixture_home/.codex/TODO.md" ./tools/todo-crud.sh self-test
+    # The engine protects the real file even after a read. Release our fixture.
+    source ./tools/compat.sh
+    clear_immutable "$fixture_home/.codex/TODO.md" || true
     [ "$status" -eq 0 ]
 }
