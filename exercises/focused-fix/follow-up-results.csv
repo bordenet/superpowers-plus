@@ -1,0 +1,19 @@
+task,repeat,variant,seconds,input_tokens,cached_input_tokens,output_tokens,repeated_commands,reviewer_dispatches,human_interruptions,behavior_pass,review_pass,review_reason
+booking,1,Candidate,24.97,157895,136064,719,1,0,0,True,,
+booking,1,Full,23.88,155130,134016,610,1,0,0,True,,
+booking,2,Candidate,33.25,252948,231168,840,1,0,0,True,,
+booking,2,Full,31.74,298557,271360,758,0,0,0,True,,
+booking,3,Full,27.19,231094,188800,731,0,0,0,True,,
+retention,1,Candidate,15.34,122983,103936,344,0,0,0,True,True,Cited app.py and settings.py to trace the no-argument call through empty options to the default of 48. Running app.py printed 48. The diff was empty.
+retention,1,Full,15.73,110792,95744,347,0,0,0,True,True,Identified the empty dictionary passed by start() and the default of 48 used when retention_hours is absent. Running app.py printed 48. The diff was empty.
+retention,2,Candidate,18.66,118477,100352,382,0,0,0,True,True,"Traced the script's start() call through empty options to the lookup default of 48 in settings.py. Running app.py printed 48, and the final git status was clean."
+retention,2,Full,18.12,114101,97536,412,0,0,0,True,True,Traced start() from None to {} and the missing retention_hours key to the default of 48 in settings.py. Running app.py printed 48. The diff was empty.
+retention,3,Candidate,18.63,144409,111488,395,0,0,0,True,True,"Correctly traced start() through {} to the default of 48 in settings.py. After the failed main import, running app.py directly printed 48. The diff was empty."
+retention,3,Full,29.37,114102,97536,441,0,0,0,True,True,"Showed that start() passes {} to settings.retention_hours(), whose missing-key default is 48. Running app.py printed 48. The diff was empty."
+scheduler,1,Candidate,39.46,283956,233216,1214,1,0,0,True,,
+scheduler,1,Full,49.21,207158,179200,957,0,0,0,False,,
+scheduler,2,Candidate,38.89,299327,271104,1053,0,0,0,True,,
+scheduler,2,Full,32.13,198967,173568,1024,0,0,0,True,,
+workers,1,Candidate,62.04,337562,280192,2175,1,0,0,True,,
+workers,1,Full,49.4,183657,159744,1879,1,0,0,False,,
+workers,2,Candidate,53.44,216907,175872,1981,1,0,0,True,,
