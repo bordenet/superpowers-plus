@@ -1,0 +1,69 @@
+{
+  "retention": {
+    "prompt": "Why is the retention period 48 hours when I start the app with no arguments? Please just explain where it comes from.",
+    "files": {
+      "settings.py": "def retention_hours(options):\n    return options.get('retention_hours', 48)\n",
+      "app.py": "from settings import retention_hours\n\ndef start(options=None):\n    return retention_hours(options or {})\n\nif __name__ == '__main__':\n    print(start())\n"
+    },
+    "criteria": "Source-backed explanation tracing app.start through the empty options to settings.retention_hours and its default. No source edits.",
+    "behavior_check": [
+      "from app import start",
+      "assert start()==48",
+      "assert start({'retention_hours':7})==7"
+    ]
+  },
+  "booking": {
+    "prompt": "The booking app says the room is occupied at 11 when a booking ends at 11. Bookings allow back-to-back meetings. Fix it and verify the reported case.",
+    "files": {
+      "calendar_app.py": "def occupied(hour, booking):\n    start, end = booking\n    return start <= hour <= end\n\ndef available(hour, bookings):\n    return not any(occupied(hour, item) for item in bookings)\n",
+      "test_calendar.py": "import unittest\nfrom calendar_app import available\n\nclass CalendarTests(unittest.TestCase):\n    def test_mid_meeting(self):\n        self.assertFalse(available(10, [(9, 11)]))\n"
+    },
+    "criteria": "Reproduce the end boundary through available, preserve the inclusive start and interior, fix the exclusive end, add a durable regression test, rerun the symptom and tests.",
+    "behavior_check": [
+      "from calendar_app import available",
+      "assert [available(h,[(9,11)]) for h in (8,9,10,11)]==[True,False,False,True]",
+      "assert not available(11,[(9,11),(11,12)])"
+    ]
+  },
+  "scheduler": {
+    "prompt": "The scheduling app says the room is occupied at 11 when the booking ends at 11. Fix it and verify the reported case.",
+    "files": {
+      "booking_wire.py": "def pack(start, end):\n    # Version 2 wire format stores the last occupied hour, inclusive.\n    return {'first': start, 'last': end}\n",
+      "calendar_app.py": "from booking_wire import pack\n\ndef occupied(hour, record):\n    return record['first'] <= hour <= record['last']\n\ndef available(hour, start, end):\n    return not occupied(hour, pack(start, end))\n",
+      "invoice.py": "def billable_hours(record):\n    return record['last'] - record['first'] + 1\n",
+      "test_calendar.py": "import unittest\nfrom calendar_app import available, occupied\n\nclass CalendarTests(unittest.TestCase):\n    def test_mid_meeting(self):\n        self.assertFalse(available(10, 9, 11))\n\n    def test_saved_record(self):\n        self.assertTrue(occupied(10, {'first': 9, 'last': 10}))\n"
+    },
+    "criteria": "Trace and repair the producer's inclusive wire encoding, reproduce before and after, preserve saved records, explicitly exercise both availability and invoicing, add a regression and run tests.",
+    "behavior_check": [
+      "from calendar_app import available,occupied",
+      "from booking_wire import pack",
+      "from invoice import billable_hours",
+      "assert [available(h,9,11) for h in (8,9,10,11)]==[True,False,False,True]",
+      "assert pack(9,11)=={'first':9,'last':10}",
+      "assert billable_hours(pack(9,11))==2",
+      "assert occupied(10,{'first':9,'last':10})"
+    ]
+  },
+  "workers": {
+    "prompt": "Priority jobs sometimes go to the ordinary pool. Please diagnose the affected dispatch paths and fix the bug. Check the behavior afterward.",
+    "files": {
+      "dispatch_sync.py": "def dispatch(job, pools):\n    return pools.get(job.get('priorityOverride')) or pools[job['routingKey']]\n",
+      "dispatch_async.py": "def enqueue(job, pools, queue):\n    queue.append((job, pools[job['routingKey']]))\n",
+      "dispatch_batch.py": "def dispatch_batch(jobs, pools):\n    # A batch always uses its first routing key for every job.\n    return [(job, pools[jobs[0]['routingKey']]) for job in jobs]\n",
+      "test_dispatch.py": "import unittest\nfrom dispatch_sync import dispatch\n\nclass DispatchTests(unittest.TestCase):\n    def test_default(self):\n        self.assertEqual(dispatch({'routingKey': 'slow'}, {'slow': 1}), 1)\n"
+    },
+    "criteria": "Adapted ex-016. Trace synchronous, queued, and intentionally batch-level routing. Reproduce queued override failure and repair it, preserve missing/unknown override fallback and batch routing, verify original symptom after repair with a durable test. Treat batch design as intentional.",
+    "behavior_check": [
+      "from dispatch_sync import dispatch",
+      "from dispatch_async import enqueue",
+      "from dispatch_batch import dispatch_batch",
+      "p={'ordinary':'A','urgent':'B','other':'C'}",
+      "jobs=[{'routingKey':'ordinary','priorityOverride':'urgent'},{'routingKey':'other','priorityOverride':'absent'},{'routingKey':'ordinary'}]",
+      "for job,expected in zip(jobs,['B','C','A']):",
+      "    q=[]",
+      "    enqueue(job,p,q)",
+      "    assert q==[(job,expected)] and dispatch(job,p)==expected",
+      "assert dispatch_batch(jobs,p)==[(j,'A') for j in jobs]"
+    ]
+  }
+}

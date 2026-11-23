@@ -68,8 +68,9 @@ PYEOF
 # Smoke test: measure script itself runs cleanly
 # ---------------------------------------------------------------------------
 
-@test "artifact budgets compare and expose advisory output" {
-  run bash "$MEASURE"
+@test "repository artifact budgets compare independently of the host installation" {
+  # Dedicated fixture tests below exercise the host measurements.
+  run env CI=true bash "$MEASURE"
   printf '%s\n' "$output" >&3
   [ "$status" -eq 0 ]
   [[ "$output" == *"resident-listing-bytes"* ]]

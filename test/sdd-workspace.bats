@@ -150,24 +150,30 @@ setup() {
     [[ "$output" == *"cannot create workspace lock"* ]]
 }
 
-# A lock released between two separate stats (`-e` then `! -d`) looked like a
-# file obstruction and failed a waiting caller; it flaked CI under load. Widen
-# that window on purpose: insert a sleep before the obstruction check's last
-# test. The single-stat-per-test check stays correct; the old pair failed ~10%
-# of callers here.
+# Release the fixture owner's lock immediately after the first stat. The
+# obsolete "-e && ! -d" check sees two different states and reports an
+# obstruction. A single-stat type check retries and acquires the lock.
 @test "sdd-workspace: a lock released mid-check is retried, not reported as an obstruction" {
     echo "# plan" > plan.md
-    slow="$BATS_TEST_TMPDIR/sdd-workspace-slow"
-    sed 's/^  if \(.*\) || \[ -S "\$lock" \]; then$/  if \1 || { sleep 0.02; [ -S "$lock" ]; }; then/' "$SCRIPT" > "$slow"
-    grep -q 'sleep 0.02' "$slow"
-    for round in 1 2 3; do
-        pids=()
-        for n in $(seq 1 12); do
-            bash "$slow" plan.md > "out-$round-$n" 2>> err & pids+=("$!")
-        done
-        for pid in "${pids[@]}"; do wait "$pid"; done
-    done
-    [ ! -s err ] || { cat err; false; }
+    mkdir -p .superpowers/sdd/.workspace-lock
+    probe="$BATS_TEST_TMPDIR/release-after-stat"
+    cat > "$probe" <<'PROBE'
+function [ {
+    local result=0
+    builtin [ "$@" || result=$?
+    if [[ $# == 3 && $2 == "$PWD/.superpowers/sdd/.workspace-lock" &&
+          ( $1 == -e || $1 == -f ) && ! -e "$RELEASE_MARKER" ]]; then
+        rmdir "$2" || return 2
+        touch "$RELEASE_MARKER"
+    fi
+    return "$result"
+}
+PROBE
+    run env BASH_ENV="$probe" RELEASE_MARKER="$BATS_TEST_TMPDIR/released" bash "$SCRIPT" plan.md
+    [ "$status" -eq 0 ]
+    [ -f "$BATS_TEST_TMPDIR/released" ]
+    [ "$output" = "$SANDBOX/.superpowers/sdd/plan" ]
+    [ ! -e .superpowers/sdd/.workspace-lock ]
 }
 
 @test "sdd-workspace: stale lock fails with a recovery message within a bounded wait" {
